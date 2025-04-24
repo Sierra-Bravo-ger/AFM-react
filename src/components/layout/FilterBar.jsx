@@ -352,47 +352,57 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
           </button>
         </div>
         
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <div className="flex items-center">
-            <label className="mr-2 text-sm font-bold text-gray-700 dark:text-gray-300">Daten gefiltert von:</label>
-            <input
-              type="date"
-              id="startDate"
-              name="startDate"
-              value={localFilter.startDate}
-              onChange={handleDateChange}
-              className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
-              min={minDate ? formatDateForInput(new Date(minDate)) : ''}
-            />
-            <input
-              type="time"
-              id="startTime"
-              name="startTime"
-              value={localFilter.startTime}
-              onChange={handleDateChange}
-              className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 ml-1"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-2xl mx-auto">
+          {/* Von-Datum - erste Zeile im Grid */}
+          <div className="grid grid-cols-2 items-center">
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 text-left">Von:</label>
+            <div className="flex justify-end">
+              <div className="w-32">
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={localFilter.startDate}
+                  onChange={handleDateChange}
+                  className="w-full border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
+                  min={minDate ? formatDateForInput(new Date(minDate)) : ''}
+                />
+              </div>
+              <input
+                type="time"
+                id="startTime"
+                name="startTime"
+                value={localFilter.startTime}
+                onChange={handleDateChange}
+                className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 ml-1"
+              />
+            </div>
           </div>
           
-          <div className="flex items-center ml-2">
-            <label htmlFor="endDate" className="mr-2 text-sm font-bold text-gray-700 dark:text-gray-300">Bis:</label>
-            <input
-              type="date"
-              id="endDate"
-              name="endDate"
-              value={localFilter.endDate}
-              onChange={handleDateChange}
-              className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
-              max={maxDate ? formatDateForInput(new Date(maxDate)) : ''}
-            />
-            <input
-              type="time"
-              id="endTime"
-              name="endTime"
-              value={localFilter.endTime}
-              onChange={handleDateChange}
-              className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 ml-1"
-            />
+          {/* Bis-Datum - zweite Zeile im Grid */}
+          <div className="grid grid-cols-2 items-center">
+            <label htmlFor="endDate" className="text-sm font-bold text-gray-700 dark:text-gray-300 text-left">Bis:</label>
+            <div className="flex justify-end">
+              <div className="w-32">
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={localFilter.endDate}
+                  onChange={handleDateChange}
+                  className="w-full border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
+                  max={maxDate ? formatDateForInput(new Date(maxDate)) : ''}
+                />
+              </div>
+              <input
+                type="time"
+                id="endTime"
+                name="endTime"
+                value={localFilter.endTime}
+                onChange={handleDateChange}
+                className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 ml-1"
+              />
+            </div>
           </div>
         </div>
       </div>

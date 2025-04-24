@@ -13,17 +13,17 @@ const DashboardLayout = ({ children }) => {
       
       {/* Dashboard-Titel */}
       <div className="container mx-auto px-4 pt-6 pb-2">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Schnittstellen-Überwachung</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Echtzeit-Monitoring der Dateiverarbeitung</p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <div className="flex items-center px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded-full text-xs font-medium">
               <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full mr-2 animate-pulse"></div>
               System aktiv
             </div>
-            <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium">
+            <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium whitespace-nowrap">
               Letzte Aktualisierung: {new Date().toLocaleTimeString('de-DE')}
             </div>
           </div>

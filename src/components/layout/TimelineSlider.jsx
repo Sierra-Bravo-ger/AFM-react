@@ -183,6 +183,8 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       // Entferne die globalen Event-Listener
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
       
       document.body.style.cursor = 'default';
       
@@ -218,9 +220,147 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       setDragging(null);
     };
     
+    // Touch-Handler für Bewegung
+    const handleGlobalTouchMove = (touchEvent) => {
+      if (!timelineRef.current || !touchEvent.touches[0]) return;
+      
+      const rect = timelineRef.current.getBoundingClientRect();
+      const touchX = touchEvent.touches[0].clientX;
+      const deltaX = touchX - startX;
+      
+      // Berechne neue Positionen für beide Handles
+      let newStartPos = initialStartPos + deltaX;
+      let newEndPos = initialEndPos + deltaX;
+      
+      // Stelle sicher, dass die Positionen im gültigen Bereich liegen
+      if (newStartPos < 0) {
+        newStartPos = 0;
+        newEndPos = rangeWidth;
+      }
+      
+      if (newEndPos > rect.width) {
+        newEndPos = rect.width;
+        newStartPos = newEndPos - rangeWidth;
+      }
+      
+      // Aktualisiere die Positionen
+      setStartHandlePos(newStartPos);
+      setEndHandlePos(newEndPos);
+      
+      // Verhindere Standard-Touch-Verhalten wie Scrollen
+      touchEvent.preventDefault();
+    };
+    
+    // Touch-Handler für das Ende des Touches
+    const handleGlobalTouchEnd = handleGlobalMouseUp;
+    
     // Füge globale Event-Listener hinzu
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp, { once: true });
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { once: true });
+  };
+  
+  // Touch-Handler für den Bereich zwischen den Handles
+  const handleRangeTouchStart = (e) => {
+    if (!e.touches[0]) return;
+    
+    // Verhindere Standard-Touch-Aktionen
+    e.stopPropagation();
+    
+    // Setze den Dragging-Status
+    setDragging('range');
+    
+    // Setze das Flag, um zu verhindern, dass der Slider nach dem Loslassen zurückspringt
+    preventUpdateRef.current = true;
+    
+    // Startposition für das Ziehen merken
+    const startX = e.touches[0].clientX;
+    const initialStartPos = startHandlePos;
+    const initialEndPos = endHandlePos;
+    const rangeWidth = initialEndPos - initialStartPos;
+    
+    // Verhindern, dass der Bildschirm scrollt während des Ziehens
+    document.body.style.overflow = 'hidden';
+    
+    // Touch-Handler für Bewegung
+    const handleGlobalTouchMove = (touchEvent) => {
+      if (!timelineRef.current || !touchEvent.touches[0]) return;
+      
+      // Verhindere Standard-Touch-Aktionen während der Bewegung
+      touchEvent.stopPropagation();
+      
+      const rect = timelineRef.current.getBoundingClientRect();
+      const touchX = touchEvent.touches[0].clientX;
+      const deltaX = touchX - startX;
+      
+      // Berechne neue Positionen für beide Handles
+      let newStartPos = initialStartPos + deltaX;
+      let newEndPos = initialEndPos + deltaX;
+      
+      // Stelle sicher, dass die Positionen im gültigen Bereich liegen
+      if (newStartPos < 0) {
+        newStartPos = 0;
+        newEndPos = rangeWidth;
+      }
+      
+      if (newEndPos > rect.width) {
+        newEndPos = rect.width;
+        newStartPos = newEndPos - rangeWidth;
+      }
+      
+      // Aktualisiere die Positionen
+      setStartHandlePos(newStartPos);
+      setEndHandlePos(newEndPos);
+    };
+    
+    // Touch-Handler für das Ende des Touches
+    const handleGlobalTouchEnd = () => {
+      // Entferne die globalen Event-Listener
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd);
+      
+      // Erlaube Scrollen wieder
+      document.body.style.overflow = '';
+      
+      // Berechne die neuen Datumswerte basierend auf den Handle-Positionen
+      if (timelineWidth > 0 && minDate && maxDate) {
+        const totalRange = maxDate.getTime() - minDate.getTime();
+        
+        // Berechne die Prozentpositionen
+        const startPercent = startHandlePos / timelineWidth;
+        const endPercent = endHandlePos / timelineWidth;
+        
+        // Berechne die neuen Datumswerte
+        const newStartDate = new Date(minDate.getTime() + startPercent * totalRange);
+        const newEndDate = new Date(minDate.getTime() + endPercent * totalRange);
+        
+        console.log('TimelineSlider - Sende neue Datumswerte (Range-Touch):', 
+                  newStartDate.toLocaleString(), 
+                  newEndDate.toLocaleString(),
+                  'von Positionen:', startHandlePos, endHandlePos);
+        
+        // Benachrichtige die übergeordnete Komponente
+        onRangeChange({
+          startDate: newStartDate,
+          endDate: newEndDate
+        });
+        
+        // Setze das Flag nach einer Verzögerung zurück, um zukünftige Updates zu ermöglichen
+        setTimeout(() => {
+          preventUpdateRef.current = false;
+        }, 200); // Längere Verzögerung für stabilere Touch-Interaktion
+      }
+      
+      // Setze den Dragging-Status zurück
+      setDragging(null);
+    };
+    
+    // Füge globale Event-Listener hinzu
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { once: true });
+    document.addEventListener('touchcancel', handleGlobalTouchEnd, { once: true }); // Wichtig für abgebrochene Touch-Events
   };
   
   // Handler für das Drücken der Maus auf einen Slider
@@ -257,11 +397,35 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       }
     };
     
+    // Touch-Handler für Bewegung
+    const handleGlobalTouchMove = (touchEvent) => {
+      if (!timelineRef.current || !touchEvent.touches[0]) return;
+      
+      const rect = timelineRef.current.getBoundingClientRect();
+      const touchX = touchEvent.touches[0].clientX;
+      const deltaX = touchX - startX;
+      
+      if (type === 'start') {
+        // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
+        const newPos = Math.max(0, Math.min(endHandlePos - 10, initialStartPos + deltaX));
+        setStartHandlePos(newPos);
+      } else if (type === 'end') {
+        // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
+        const newPos = Math.max(startHandlePos + 10, Math.min(rect.width, initialEndPos + deltaX));
+        setEndHandlePos(newPos);
+      }
+      
+      // Verhindere Standard-Touch-Verhalten wie Scrollen
+      touchEvent.preventDefault();
+    };
+    
     // Handler für das Loslassen der Maus
     const handleGlobalMouseUp = () => {
       // Entferne die globalen Event-Listener
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
       
       document.body.style.cursor = 'default';
       
@@ -297,9 +461,106 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       setDragging(null);
     };
     
+    // Touch-Handler für das Ende des Touches
+    const handleGlobalTouchEnd = handleGlobalMouseUp;
+    
     // Füge globale Event-Listener hinzu
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp, { once: true });
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { once: true });
+  };
+  
+  // Touch-Handler für die Slider-Handles
+  const handleSliderTouchStart = (type, e) => {
+    if (!e.touches[0]) return;
+    
+    // Verhindere Standard-Touch-Aktionen
+    e.stopPropagation();
+    
+    // Setze den Dragging-Status
+    setDragging(type);
+    
+    // Setze das Flag, um zu verhindern, dass der Slider nach dem Loslassen zurückspringt
+    preventUpdateRef.current = true;
+    
+    // Startposition für das Ziehen merken
+    const startX = e.touches[0].clientX;
+    const initialStartPos = startHandlePos;
+    const initialEndPos = endHandlePos;
+    
+    // Verhindern, dass der Bildschirm scrollt während des Ziehens
+    document.body.style.overflow = 'hidden';
+    
+    // Touch-Handler für Bewegung
+    const handleGlobalTouchMove = (touchEvent) => {
+      if (!timelineRef.current || !touchEvent.touches[0]) return;
+      
+      // Verhindere Standard-Touch-Aktionen während der Bewegung
+      touchEvent.stopPropagation();
+      
+      const rect = timelineRef.current.getBoundingClientRect();
+      const touchX = touchEvent.touches[0].clientX;
+      const deltaX = touchX - startX;
+      
+      if (type === 'start') {
+        // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
+        const newPos = Math.max(0, Math.min(endHandlePos - 10, initialStartPos + deltaX));
+        setStartHandlePos(newPos);
+      } else if (type === 'end') {
+        // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
+        const newPos = Math.max(startHandlePos + 10, Math.min(rect.width, initialEndPos + deltaX));
+        setEndHandlePos(newPos);
+      }
+    };
+    
+    // Touch-Handler für das Ende des Touches
+    const handleGlobalTouchEnd = () => {
+      // Entferne die globalen Event-Listener
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+      document.removeEventListener('touchcancel', handleGlobalTouchEnd);
+      
+      // Erlaube Scrollen wieder
+      document.body.style.overflow = '';
+      
+      // Berechne die neuen Datumswerte basierend auf den Handle-Positionen
+      if (timelineWidth > 0 && minDate && maxDate) {
+        const totalRange = maxDate.getTime() - minDate.getTime();
+        
+        // Berechne die Prozentpositionen
+        const startPercent = startHandlePos / timelineWidth;
+        const endPercent = endHandlePos / timelineWidth;
+        
+        // Berechne die neuen Datumswerte
+        const newStartDate = new Date(minDate.getTime() + startPercent * totalRange);
+        const newEndDate = new Date(minDate.getTime() + endPercent * totalRange);
+        
+        console.log('TimelineSlider - Sende neue Datumswerte (Handle-Touch):', 
+                  newStartDate.toLocaleString(), 
+                  newEndDate.toLocaleString(),
+                  'von Positionen:', startHandlePos, endHandlePos);
+        
+        // Benachrichtige die übergeordnete Komponente
+        onRangeChange({
+          startDate: newStartDate,
+          endDate: newEndDate
+        });
+        
+        // Setze das Flag nach einer Verzögerung zurück, um zukünftige Updates zu ermöglichen
+        setTimeout(() => {
+          preventUpdateRef.current = false;
+        }, 200); // Längere Verzögerung für stabilere Touch-Interaktion
+      }
+      
+      // Setze den Dragging-Status zurück
+      setDragging(null);
+    };
+    
+    // Füge globale Event-Listener hinzu
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+    document.addEventListener('touchend', handleGlobalTouchEnd, { once: true });
+    document.addEventListener('touchcancel', handleGlobalTouchEnd, { once: true }); // Wichtig für abgebrochene Touch-Events
   };
   
   // Handler für das Verlassen des Zeitstrahls
@@ -319,13 +580,16 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
   
   // Generiere Zeitmarker für den Zeitstrahl
   const generateTimeMarkers = () => {
-    if (!minDate || !maxDate) return [];
+    if (!minDate || !maxDate || !timelineWidth) return [];
     
     const totalDuration = maxDate.getTime() - minDate.getTime();
     const markers = [];
     
-    // Bestimme den Abstand zwischen den Markern basierend auf der Gesamtdauer
+    // Bestimme den Abstand zwischen den Markern basierend auf der Gesamtdauer und Bildschirmbreite
     let step;
+    let skipFactor = 1; // Faktor zum Überspringen von Markern bei kleinen Bildschirmen
+    
+    // Bestimme Schrittgröße basierend auf Zeitraum
     if (totalDuration <= 24 * 60 * 60 * 1000) { // Weniger als 1 Tag
       step = 60 * 60 * 1000; // 1 Stunde
     } else if (totalDuration <= 7 * 24 * 60 * 60 * 1000) { // Weniger als 1 Woche
@@ -336,8 +600,25 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       step = 7 * 24 * 60 * 60 * 1000; // 1 Woche
     }
     
+    // Passe die Markerdichte basierend auf der Bildschirmbreite an
+    if (timelineWidth < 400) {
+      skipFactor = 3; // Zeige nur jeden dritten Marker auf kleinen Bildschirmen
+    } else if (timelineWidth < 600) {
+      skipFactor = 2; // Zeige nur jeden zweiten Marker auf mittleren Bildschirmen
+    }
+    
+    // Berechne, wie viele Marker wir insgesamt haben würden
+    const totalMarkers = Math.ceil((maxDate.getTime() - minDate.getTime()) / step);
+    
     // Erzeuge die Marker
+    let markerCount = 0;
     for (let time = minDate.getTime(); time <= maxDate.getTime(); time += step) {
+      // Überspringe Marker basierend auf skipFactor
+      if (markerCount % skipFactor !== 0 && time !== minDate.getTime() && time !== maxDate.getTime()) {
+        markerCount++;
+        continue;
+      }
+      
       const date = new Date(time);
       const position = dateToPosition(date);
       
@@ -352,6 +633,7 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       }
       
       markers.push({ position, label, date });
+      markerCount++;
     }
     
     return markers;
@@ -368,11 +650,12 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Ausgewählter Bereich - jetzt draggable */}
+        {/* Ausgewählter Bereich - jetzt draggable und touch-fähig */}
         <div 
           className="absolute h-full bg-blue-200 dark:bg-blue-800/40 rounded-md cursor-grab hover:bg-blue-300 dark:hover:bg-blue-700/50"
           style={{ left: startPosition, width: `${endPosition - startPosition}px` }}
           onMouseDown={(e) => handleRangeMouseDown(e)}
+          onTouchStart={(e) => handleRangeTouchStart(e)}
         />
         
         {/* Zeitmarker */}
@@ -394,6 +677,7 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
           className="absolute top-0 w-6 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-l-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500"
           style={{ left: startPosition }}
           onMouseDown={(e) => handleSliderMouseDown('start', e)}
+          onTouchStart={(e) => handleSliderTouchStart('start', e)}
         />
         
         {/* End-Slider */}
@@ -402,6 +686,7 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
           className="absolute top-0 w-6 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-r-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500"
           style={{ left: endPosition }}
           onMouseDown={(e) => handleSliderMouseDown('end', e)}
+          onTouchStart={(e) => handleSliderTouchStart('end', e)}
         />
         
         {/* Hover-Anzeige */}
