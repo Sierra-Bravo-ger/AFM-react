@@ -20,6 +20,15 @@ import WidgetCard from '../layout/WidgetCard';
 const ErrorStackedLineWidget = ({ patternData, loading }) => {
   const [expanded, setExpanded] = useState(false);
   
+  // Normalisierungsfunktion für Mustertypen
+  const normalizeMusterType = (type) => {
+    // Bekannte Probleme mit Umlauten beheben
+    const normalizedType = type
+      .replace(/ZeitÃ¼berschreitung/g, 'Zeitüberschreitung')
+      .replace(/Verbindung von peer/g, 'Verbindung von Peer');
+    return normalizedType || 'Unbekannt';
+  };
+
   // Verarbeite die Daten für das Diagramm
   const chartData = useMemo(() => {
     if (!patternData || patternData.length === 0) return [];
@@ -42,7 +51,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
     patternData.forEach(pattern => {
       const date = new Date(pattern.Zeitpunkt);
       const hour = `${date.getHours()}:00`;
-      const patternType = pattern.Muster || 'Unbekannt';
+      const patternType = normalizeMusterType(pattern.Muster || 'Unbekannt');
       
       if (!groupedData[hour][patternType]) {
         groupedData[hour][patternType] = 0;
@@ -59,14 +68,15 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
       }))
       .sort((a, b) => a.hour - b.hour);
   }, [patternData]);
-  
+
   // Extrahiere alle eindeutigen Mustertypen für die Linien
   const patternTypes = useMemo(() => {
     if (!patternData || patternData.length === 0) return [];
     
     const types = new Set();
     patternData.forEach(pattern => {
-      types.add(pattern.Muster || 'Unbekannt');
+      const normalizedType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+      types.add(normalizedType);
     });
     
     return Array.from(types);
@@ -80,7 +90,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
     'nicht definiert': '#4BC0C0',
     'lock conflict': '#9966FF',
     'deadlock': '#FF9F40',
-    'Verbindung von peer': '#FF6384',
+    'Verbindung von Peer': '#FF6384',
     'Unbekannt': '#C9CBCF'
   };
   
@@ -150,7 +160,6 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
                     </linearGradient>
                   ))}
                 </defs>
-                <rect x="0" y="0" width="100%" height="100%" fill="inherit" />
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" className="dark:stroke-gray-600" />
                 <XAxis 
                   dataKey="hour" 

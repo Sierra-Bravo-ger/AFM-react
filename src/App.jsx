@@ -6,6 +6,14 @@ import ErrorWidget from './components/widgets/ErrorWidget';
 import FileCountWidget from './components/widgets/FileCountWidget';
 import PatternMatchWidget from './components/widgets/PatternMatchWidget';
 import ErrorStackedLineWidget from './components/widgets/ErrorStackedLineWidget';
+import ErrorStackedBarWidget from './components/widgets/ErrorStackedBarWidget';
+
+// Neue Widgets importieren
+import SystemHealthWidget from './components/widgets/SystemHealthWidget';
+import ThroughputWidget from './components/widgets/ThroughputWidget';
+import ErrorTimeAnalysisWidget from './components/widgets/ErrorTimeAnalysisWidget';
+import ErrorHeatmapWidget from './components/widgets/ErrorHeatmapWidget';
+
 import { loadCSVData } from './utils/DataLoader';
 import { 
   calculateStatusStatistics, 
@@ -13,6 +21,18 @@ import {
   countFilesByTimestamp, 
   analyzePatternMatches 
 } from './utils/DataProcessor';
+
+// Erweiterte Metriken importieren
+import {
+  calculateSystemHealth,
+  calculateErrorRate,
+  calculateThroughput,
+  calculateErrorTrend,
+  analyzeErrorsByHour,
+  analyzeErrorsByDay,
+  createErrorHeatmap
+} from './utils/AdvancedMetrics';
+
 import './App.css';
 
 function App() {
@@ -33,6 +53,13 @@ function App() {
   const [errorGroups, setErrorGroups] = useState(null);
   const [fileCountData, setFileCountData] = useState(null);
   const [patternAnalysis, setPatternAnalysis] = useState(null);
+  
+  // State für erweiterte Metriken
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [throughput, setThroughput] = useState(null);
+  const [errorsByHour, setErrorsByHour] = useState(null);
+  const [errorsByDay, setErrorsByDay] = useState(null);
+  const [errorHeatmap, setErrorHeatmap] = useState(null);
   
   // Zeitraum-Filter
   const [dateRange, setDateRange] = useState({
@@ -155,10 +182,25 @@ function App() {
     setFilteredPatternData(filteredPattern);
     
     // Verarbeitete Daten aktualisieren
-    setStatusStats(calculateStatusStatistics(filteredStatus));
+    const newStatusStats = calculateStatusStatistics(filteredStatus);
+    setStatusStats(newStatusStats);
     setErrorGroups(groupErrorsByType(filteredError));
     setFileCountData(countFilesByTimestamp(filteredInput));
     setPatternAnalysis(analyzePatternMatches(filteredPattern));
+    
+    // Erweiterte Metriken berechnen
+    const newSystemHealth = calculateSystemHealth(newStatusStats, filteredError, filteredInput, patternAnalysis);
+    const newThroughput = calculateThroughput(newStatusStats, filteredInput);
+    const newErrorsByHour = analyzeErrorsByHour(filteredError);
+    const newErrorsByDay = analyzeErrorsByDay(filteredError);
+    const newErrorHeatmap = createErrorHeatmap(filteredError);
+    
+    // Erweiterte Metriken aktualisieren
+    setSystemHealth(newSystemHealth);
+    setThroughput(newThroughput);
+    setErrorsByHour(newErrorsByHour);
+    setErrorsByDay(newErrorsByDay);
+    setErrorHeatmap(newErrorHeatmap);
   }, [dateRange, statusData, errorData, inputData, patternData, filterDataByDateRange]);
   
   return (
@@ -173,9 +215,35 @@ function App() {
         />
       </div>
       
-      {/* Status-Widget */}
+      {/* System-Gesundheit und Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* System-Gesundheit-Widget */}
+        <div>
+          <SystemHealthWidget systemHealth={systemHealth} loading={loading} />
+        </div>
+        
+        {/* Status-Widget */}
+        <div>
+          <StatusWidget statusStats={statusStats} loading={loading} />
+        </div>
+      </div>
+      
+      {/* Durchsatz und Fehleranalyse */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Durchsatz-Widget */}
+        <div>
+          <ThroughputWidget throughput={throughput} statusData={filteredStatusData} loading={loading} />
+        </div>
+        
+        {/* Fehler-Zeit-Analyse-Widget */}
+        <div>
+          <ErrorTimeAnalysisWidget errorsByHour={errorsByHour} errorsByDay={errorsByDay} loading={loading} />
+        </div>
+      </div>
+      
+      {/* Fehler-Heatmap */}
       <div className="mb-6">
-        <StatusWidget statusStats={statusStats} loading={loading} />
+        <ErrorHeatmapWidget errorHeatmap={errorHeatmap} loading={loading} />
       </div>
       
       {/* Datei-Zählungs-Widget */}
@@ -193,17 +261,17 @@ function App() {
         <ErrorStackedLineWidget patternData={filteredPatternData} loading={loading} dateRange={dateRange} />
       </div>
       
+      {/* ErrorStackedBar-Widget */}
+      <div className="mb-6">
+        <ErrorStackedBarWidget patternData={filteredPatternData} loading={loading} />
+      </div>
+      
       {/* Fehler-Widget */}
       <div className="mb-6">
         <ErrorWidget errorGroups={errorGroups} loading={loading} />
       </div>
       
-      {/* Zeitraum-Anzeige */}
-      {dateRange.startDate && dateRange.endDate && (
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center text-sm text-blue-800 dark:text-blue-200">
-          Daten gefiltert von {dateRange.startDate.toLocaleDateString()} bis {dateRange.endDate.toLocaleDateString()}
-        </div>
-      )}
+      {/* Zeitraum-Anzeige wurde in die FilterBar verschoben */}
     </DashboardLayout>
   );
 }

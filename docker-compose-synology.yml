@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  afm-dashboard:
+    image: sierrabravoger/afm-react:latest
+    container_name: afm-dashboard
+    ports:
+      - "7188:80"
+    # Einbinden der CSV-Dateien aus dem Host-System
+    # Das Image enthält bereits Beispiel-Dateien, die überschrieben werden
+    volumes:
+      # Wichtig: Stelle sicher, dass dieses Verzeichnis auf dem Synology NAS existiert
+      # und die CSV-Dateien enthält (AFM_status_log.csv, AFM_error_log.csv, usw.)
+      - /volume1/docker/afm-react/AFMlog:/usr/share/nginx/html/AFMlog:ro
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin

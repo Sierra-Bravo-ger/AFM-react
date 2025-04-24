@@ -164,11 +164,13 @@ Verarbeitet die geladenen Daten für die verschiedenen Widgets:
 
 ## Besonderheiten & Best Practices
 
-1. **Robuste Datenverarbeitung**: Umgang mit fehlenden Werten und Formatierungsproblemen (z.B. Carriage Return in Spaltennamen)
+1. **Robuste Datenverarbeitung**: Umgang mit fehlenden Werten und Formatierungsproblemen (z.B. Umlaute in Mustertypen)
 2. **Responsive Design**: Anpassung an verschiedene Bildschirmgrößen
 3. **Dark Mode**: Vollständige Unterstützung für helles und dunkles Design
 4. **Modulare Struktur**: Wiederverwendbare Komponenten und klare Trennung von Datenverarbeitung und Darstellung
 5. **Einheitliches Design**: Konsistente Farben, Abstände und Animationen
+6. **Interaktive Zeitfilterung**: Intuitive Zeitraumauswahl mit draggable Timeline-Slider
+7. **Konsistente Diagramm-Darstellung**: Einheitliche Hintergründe und Styling für alle Visualisierungen
 
 ## Entwicklung & Erweiterung
 
@@ -191,3 +193,22 @@ Verarbeitet die geladenen Daten für die verschiedenen Widgets:
 - CSV-Dateien müssen im erwarteten Format vorliegen
 - Symbolische Links müssen manuell eingerichtet werden
 - Keine Serverkomponente für Echtzeit-Push-Benachrichtigungen
+
+## Neue Funktionen
+
+### TimelineSlider
+
+Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl mit folgenden Funktionen:
+
+- **Draggable Handles**: Start- und Endzeit können durch Ziehen der Handles angepasst werden
+- **Bereichsauswahl**: Der ausgewählte Bereich zwischen den Handles kann als Ganzes verschoben werden
+- **Intuitive Bedienung**: Hand-Cursor (grab/grabbing) für bessere Benutzerführung
+- **Verzögerte Aktualisierung**: Filterung wird erst beim Loslassen der Handles ausgelöst
+- **Synchronisation**: Nahtlose Integration mit Datumseingabefeldern und Schnellfiltern
+
+### UI-Verbesserungen
+
+- **Optimierte Datumseingabe**: Zentrales Label "Daten gefiltert von:" für bessere Benutzerführung
+- **Konsistente Diagramme**: Einheitliche Hintergründe und Styling für alle Visualisierungen
+- **Verbesserte Fehlertypen-Darstellung**: Korrekte Darstellung von Umlauten in Fehlertypen
+- **Moderne Benutzeroberfläche**: Klare visuelle Hierarchie und intuitive Bedienelemente

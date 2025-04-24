@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
 
 /**
@@ -43,7 +43,7 @@ const StatusWidget = ({ statusStats, loading }) => {
       farbe: '#10B981' // green-500
     },
     {
-      name: 'Fehler',
+      name: 'Fehler-Dateien',
       wert: latestStatus?.Error || 0,
       farbe: '#EF4444' // red-500
     }
@@ -59,8 +59,9 @@ const StatusWidget = ({ statusStats, loading }) => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-gray-200 shadow-md rounded text-xs">
-          <p className="font-medium">{payload[0].name}: {payload[0].value}</p>
+        <div className="bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 shadow-md rounded text-xs">
+          <p className="font-medium dark:text-gray-200">{payload[0].name}</p>
+          <p className="font-semibold" style={{ color: payload[0].payload.farbe }}>{payload[0].value} Dateien</p>
         </div>
       );
     }
@@ -109,29 +110,66 @@ const StatusWidget = ({ statusStats, loading }) => {
             </div>
             <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 p-3 rounded-lg shadow-sm border border-red-200 dark:border-red-800">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-red-800 dark:text-red-300">Fehler</p>
+                <p className="text-xs font-medium text-red-800 dark:text-red-300">Fehler-Dateien</p>
                 <div className="w-2 h-2 bg-red-500 dark:bg-red-400 rounded-full"></div>
               </div>
               <p className="text-xl font-bold text-red-600 dark:text-red-300 mt-1">{latestStatus.Error}</p>
             </div>
           </div>
           
-          {/* Diagramm */}
+          {/* Diagramm - Donut Chart */}
           <div className="mb-4 mt-2">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Aktuelle Verteilung:</p>
-            <div className="h-40 w-full">
+            <div className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#666', className: 'dark:fill-gray-300' }} />
-                  <YAxis hide />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar 
-                    dataKey="wert" 
-                    radius={[4, 4, 0, 0]}
-                    barSize={30}
-                    fill="#3B82F6"
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="wert"
+                    nameKey="name"
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+                      // Nur Prozentsatz anzeigen, wenn er größer als 5% ist
+                      if (percent < 0.05) return null;
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      
+                      return (
+                        <text 
+                          x={x} 
+                          y={y} 
+                          fill="#fff" 
+                          textAnchor="middle" 
+                          dominantBaseline="central"
+                          className="text-xs font-medium"
+                        >
+                          {`${(percent * 100).toFixed(0)}%`}
+                        </text>
+                      );
+                    }}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.farbe} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} cursor={false} />
+                  <Legend 
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={(value, entry) => {
+                      return <span className="text-xs font-medium dark:text-gray-300">{value}</span>;
+                    }}
                   />
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -190,7 +228,7 @@ const StatusWidget = ({ statusStats, loading }) => {
             {/* Fehler-Zeile */}
             <div className="grid grid-cols-4 gap-2 py-1">
               <div className="col-span-1">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Fehler:</span>
+                <span className="text-xs font-medium text-red-600 dark:text-red-400">Fehler-Dateien</span>
               </div>
               <div className="col-span-1 text-center">
                 <span className="text-xs font-semibold text-red-600 dark:text-red-400">{startStatus?.Error || 0}</span>

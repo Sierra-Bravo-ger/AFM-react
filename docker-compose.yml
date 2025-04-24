@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  afm-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: afm-dashboard:latest
+    container_name: afm-dashboard
+    ports:
+      - "${PORT:-7188}:80"
+    # Einbinden der CSV-Dateien aus dem Host-System
+    # Das Image enthält bereits Beispiel-Dateien, die überschrieben werden
+    volumes:
+      - ${AFM_LOG_PATH:-C:/Transfer/LIS_Simulator/AFMlog}:/usr/share/nginx/html/AFMlog:ro
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+    networks:
+      - afm-network
+
+networks:
+  afm-network:
+    driver: bridge

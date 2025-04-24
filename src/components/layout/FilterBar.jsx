@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import TimelineSlider from './TimelineSlider';
 
 /**
  * FilterBar - Komponente zum Filtern der Daten nach Zeitraum
@@ -27,6 +28,7 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
   
   // Initialisiere Filter beim ersten Laden, wenn keine Daten vorhanden sind
   useEffect(() => {
+    console.log('useEffect: Initialisiere Filter');
     if ((!localFilter.startDate || !localFilter.endDate) && maxDate) {
       const today = new Date(maxDate);
       const yesterday = new Date(today);
@@ -55,7 +57,9 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
       const formattedEnd = formatDateForInput(currentDateRange.endDate);
       
       // Nur aktualisieren, wenn sich die Werte tatsächlich geändert haben
-      if (formattedStart !== localFilter.startDate || formattedEnd !== localFilter.endDate) {
+      // und wenn der lokale Filtertyp nicht 'custom' ist (d.h. nicht vom Benutzer geändert)
+      if ((formattedStart !== localFilter.startDate || formattedEnd !== localFilter.endDate) && 
+          localFilter.type !== 'custom') {
         setLocalFilter(prev => ({
           ...prev,
           startDate: formattedStart,
@@ -63,42 +67,57 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
         }));
       }
     }
-  }, [currentDateRange, formatDateForInput, localFilter.startDate, localFilter.endDate]);
+  }, [currentDateRange, formatDateForInput, localFilter.startDate, localFilter.endDate, localFilter.type]);
   
   // Handler für Änderungen an den Datumseingabefeldern
   const handleDateChange = useCallback((e) => {
     const { name, value } = e.target;
     
+    // Aktualisiere nur das geänderte Feld im lokalen Zustand
     setLocalFilter(prev => {
       const newFilter = { ...prev, type: 'custom' };
       if (name === 'startDate') newFilter.startDate = value;
-      if (name === 'endDate') newFilter.endDate = value;
-      if (name === 'startTime') newFilter.startTime = value;
-      if (name === 'endTime') newFilter.endTime = value;
+      else if (name === 'endDate') newFilter.endDate = value;
+      else if (name === 'startTime') newFilter.startTime = value;
+      else if (name === 'endTime') newFilter.endTime = value;
       return newFilter;
     });
     
-    // Warte kurz, um sicherzustellen, dass der lokale Zustand aktualisiert wurde
-    setTimeout(() => {
-      if ((name === 'startDate' || name === 'startTime') && localFilter.startDate && localFilter.endDate) {
-        onFilterChange({
-          startDate: new Date(`${localFilter.startDate}T${localFilter.startTime}:00`),
-          endDate: new Date(`${localFilter.endDate}T${localFilter.endTime}:00`)
-        });
-      } else if ((name === 'endDate' || name === 'endTime') && localFilter.startDate && localFilter.endDate) {
-        onFilterChange({
-          startDate: new Date(`${localFilter.startDate}T${localFilter.startTime}:00`),
-          endDate: new Date(`${localFilter.endDate}T${localFilter.endTime}:00`)
-        });
+    // Warte auf die nächste Render-Phase, um sicherzustellen, dass der Zustand aktualisiert wurde
+    requestAnimationFrame(() => {
+      // Hole den aktuellen Zustand direkt aus dem DOM, um die neuesten Werte zu erhalten
+      const currentStartDate = document.getElementById('startDate').value;
+      const currentEndDate = document.getElementById('endDate').value;
+      const currentStartTime = document.getElementById('startTime').value;
+      const currentEndTime = document.getElementById('endTime').value;
+      
+      // Nur aktualisieren, wenn beide Daten vorhanden sind
+      if (currentStartDate && currentEndDate) {
+        try {
+          // Erstelle neue Date-Objekte mit den aktuellen Werten
+          const newStartDate = new Date(`${currentStartDate}T${currentStartTime || '00:00'}:00`);
+          const newEndDate = new Date(`${currentEndDate}T${currentEndTime || '23:59'}:00`);
+          
+          // Validiere, dass die Daten gültig sind, bevor der Filter aktualisiert wird
+          if (!isNaN(newStartDate) && !isNaN(newEndDate)) {
+            // Benachrichtige die übergeordnete Komponente nur über die Änderung der Datumswerte
+            onFilterChange({
+              startDate: newStartDate,
+              endDate: newEndDate
+            });
+          }
+        } catch (error) {
+          console.error('Fehler beim Konvertieren der Datumswerte:', error);
+        }
       }
-    }, 0);
+    });
   }, [localFilter, onFilterChange]);
   
   // Handler für Änderungen am Filtertyp
   const handleFilterTypeChange = useCallback((type) => {
     if (!maxDate) return;
     
-    const today = new Date(maxDate);
+    let today = new Date(maxDate);
     let start = new Date(today);
     let startTime = '00:00';
     let endTime = '23:59';
@@ -148,20 +167,58 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
                  today.getMinutes().toString().padStart(2, '0');
         break;
       case 'lastDay':
-        start.setDate(today.getDate() - 1); // 1 Tag zurück
-        // Für Tage verwenden wir den ganzen Tag
-        startTime = '00:00';
-        endTime = '23:59';
+        // Exakt letzten 24 Stunden (gestern)
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Setze Start auf gestern mit gleicher Uhrzeit wie jetzt
+        start = new Date(yesterday);
+        
+        // Aktualisiere End auf jetzt
+        today = new Date(now);
+        
+        // Formatiere die Zeiten
+        startTime = start.getHours().toString().padStart(2, '0') + ':' + 
+                   start.getMinutes().toString().padStart(2, '0');
+        endTime = now.getHours().toString().padStart(2, '0') + ':' + 
+                 now.getMinutes().toString().padStart(2, '0');
         break;
       case 'lastWeek':
-        start.setDate(today.getDate() - 7); // 7 Tage zurück
-        startTime = '00:00';
-        endTime = '23:59';
+        // Exakt letzte 7 Tage (eine Woche)
+        const nowWeek = new Date();
+        const sevenDaysAgo = new Date(nowWeek);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        // Setze Start auf vor 7 Tagen mit gleicher Uhrzeit wie jetzt
+        start = new Date(sevenDaysAgo);
+        
+        // Aktualisiere End auf jetzt
+        today = new Date(nowWeek);
+        
+        // Formatiere die Zeiten
+        startTime = start.getHours().toString().padStart(2, '0') + ':' + 
+                   start.getMinutes().toString().padStart(2, '0');
+        endTime = nowWeek.getHours().toString().padStart(2, '0') + ':' + 
+                 nowWeek.getMinutes().toString().padStart(2, '0');
         break;
       case 'lastMonth':
-        start.setMonth(today.getMonth() - 1); // 1 Monat zurück
-        startTime = '00:00';
-        endTime = '23:59';
+        // Exakt letzte 30 Tage (ein Monat)
+        const nowMonth = new Date();
+        const thirtyDaysAgo = new Date(nowMonth);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        // Setze Start auf vor 30 Tagen mit gleicher Uhrzeit wie jetzt
+        start = new Date(thirtyDaysAgo);
+        
+        // Aktualisiere End auf jetzt
+        today = new Date(nowMonth);
+        
+        // Formatiere die Zeiten
+        startTime = start.getHours().toString().padStart(2, '0') + ':' + 
+                   start.getMinutes().toString().padStart(2, '0');
+        endTime = nowMonth.getHours().toString().padStart(2, '0') + ':' + 
+                 nowMonth.getMinutes().toString().padStart(2, '0');
         break;
       default:
         return; // Bei unbekanntem Typ nichts tun
@@ -190,13 +247,16 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 mb-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center space-x-2">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-          </svg>
-          <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Zeitraum-Filter</h2>
-        </div>
+      {/* Header mit Titel */}
+      <div className="flex items-center space-x-2 mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+        </svg>
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Zeitraum-Filter</h2>
+      </div>
+      
+      {/* Hauptbereich für Filter */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
         
         <div className="flex flex-wrap gap-2">
           {/* Kompakte Zeitraum-Filter */}
@@ -292,9 +352,9 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
           </button>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <div className="flex items-center">
-            <label htmlFor="startDate" className="mr-2 text-sm text-gray-600 dark:text-gray-300">Von:</label>
+            <label className="mr-2 text-sm font-bold text-gray-700 dark:text-gray-300">Daten gefiltert von:</label>
             <input
               type="date"
               id="startDate"
@@ -303,7 +363,6 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
               onChange={handleDateChange}
               className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
               min={minDate ? formatDateForInput(new Date(minDate)) : ''}
-              max={localFilter.endDate}
             />
             <input
               type="time"
@@ -316,7 +375,7 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
           </div>
           
           <div className="flex items-center ml-2">
-            <label htmlFor="endDate" className="mr-2 text-sm text-gray-600 dark:text-gray-300">Bis:</label>
+            <label htmlFor="endDate" className="mr-2 text-sm font-bold text-gray-700 dark:text-gray-300">Bis:</label>
             <input
               type="date"
               id="endDate"
@@ -324,7 +383,6 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
               value={localFilter.endDate}
               onChange={handleDateChange}
               className="border rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
-              min={localFilter.startDate}
               max={maxDate ? formatDateForInput(new Date(maxDate)) : ''}
             />
             <input
@@ -337,6 +395,58 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
             />
           </div>
         </div>
+      </div>
+      
+      {/* Zeitstrahl-Slider in eigener Zeile mit voller Breite */}
+      <div className="w-full mt-2">
+        <TimelineSlider 
+          minDate={minDate ? new Date(minDate) : null}
+          maxDate={maxDate ? new Date(maxDate) : null}
+          currentRange={{
+            startDate: localFilter.startDate && localFilter.startTime ? 
+              new Date(`${localFilter.startDate}T${localFilter.startTime}:00`) : null,
+            endDate: localFilter.endDate && localFilter.endTime ? 
+              new Date(`${localFilter.endDate}T${localFilter.endTime}:00`) : null
+          }}
+          onRangeChange={(range) => {
+            console.log('FilterBar - TimelineSlider hat Bereich geändert:', 
+                      range.startDate.toLocaleString(), 
+                      range.endDate.toLocaleString());
+            
+            // Formatiere die Daten für den lokalen Zustand
+            const newStartDate = formatDateForInput(range.startDate);
+            const newEndDate = formatDateForInput(range.endDate);
+            const newStartTime = range.startDate.getHours().toString().padStart(2, '0') + ':' + 
+                              range.startDate.getMinutes().toString().padStart(2, '0');
+            const newEndTime = range.endDate.getHours().toString().padStart(2, '0') + ':' + 
+                            range.endDate.getMinutes().toString().padStart(2, '0');
+            
+            console.log('FilterBar - Formatierte Werte:', 
+                      newStartDate, newStartTime, 
+                      newEndDate, newEndTime);
+            
+            // Aktualisiere den lokalen Zustand
+            setLocalFilter(prev => {
+              const updated = {
+                ...prev,
+                startDate: newStartDate,
+                endDate: newEndDate,
+                startTime: newStartTime,
+                endTime: newEndTime,
+                type: 'custom'
+              };
+              console.log('FilterBar - Neuer lokalFilter:', updated);
+              return updated;
+            });
+            
+            // Benachrichtige die übergeordnete Komponente
+            console.log('FilterBar - Benachrichtige App-Komponente über Änderung');
+            onFilterChange({
+              startDate: range.startDate,
+              endDate: range.endDate
+            });
+          }}
+        />
       </div>
     </div>
   );

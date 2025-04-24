@@ -25,6 +25,23 @@ export const loadCSVData = async (filePath) => {
 };
 
 /**
+ * Normalisiert Strings mit Encoding-Problemen
+ * @param {string} text - Text mit möglichen Encoding-Problemen
+ * @returns {string} - Normalisierter Text
+ */
+const normalizeText = (text) => {
+  // Bekannte Encoding-Probleme beheben
+  return text
+    .replace(/Ã¼/g, 'ü')
+    .replace(/Ã¤/g, 'ä')
+    .replace(/Ã¶/g, 'ö')
+    .replace(/ÃŸ/g, 'ß')
+    .replace(/Ã„/g, 'Ä')
+    .replace(/Ã–/g, 'Ö')
+    .replace(/Ãœ/g, 'Ü');
+};
+
+/**
  * Konvertiert CSV-Text in ein Array von Objekten
  * @param {string} csvText - CSV-Text mit Semikolon als Trennzeichen
  * @returns {Array} - Array mit den CSV-Daten als Objekte
@@ -47,7 +64,9 @@ export const parseCSV = (csvText) => {
       const entry = {};
       
       headers.forEach((header, index) => {
-        entry[header] = values[index] || '';
+        // Wert normalisieren, um Encoding-Probleme zu beheben
+        const value = values[index] || '';
+        entry[header] = normalizeText(value);
       });
       
       return entry;

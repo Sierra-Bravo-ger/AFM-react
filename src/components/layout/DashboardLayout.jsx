@@ -54,7 +54,7 @@ const DashboardLayout = ({ children }) => {
               </div>
               <div className="text-right">
 
-                <p className="text-sm">&copy; {new Date().getFullYear()} - Klinikum</p>
+                <p className="text-sm">&copy; {new Date().getFullYear()} - sierra-bravo-ger</p>
                 <p className="text-xs text-gray-400">Alle Rechte vorbehalten</p>
               </div>
             </div>

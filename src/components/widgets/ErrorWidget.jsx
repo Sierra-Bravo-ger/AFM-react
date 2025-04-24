@@ -267,7 +267,7 @@ const ErrorWidget = ({ errorGroups, loading }) => {
                         <span className="font-medium">{errorType}</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <span className="text-sm bg-white px-2 py-0.5 rounded-full border shadow-sm">
+                        <span className={`text-sm px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm ${errorCategories.critical.includes(errorType) ? 'text-red-700 dark:text-red-300' : errorCategories.warning.includes(errorType) ? 'text-amber-700 dark:text-amber-300' : 'text-blue-700 dark:text-blue-300'}`}>
                           {count}
                         </span>
                         <svg 
@@ -283,18 +283,18 @@ const ErrorWidget = ({ errorGroups, loading }) => {
                     </div>
                     
                     {isExpanded && (
-                      <div className="p-3 border-t bg-white">
+                      <div className="p-3 border-t bg-white dark:bg-gray-800 dark:border-gray-700">
                         <div className="max-h-48 overflow-y-auto">
                           <table className="min-w-full text-sm border-separate border-spacing-y-1">
                             <thead>
                               <tr>
-                                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500">Zeitpunkt</th>
-                                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500">Datei</th>
+                                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Zeitpunkt</th>
+                                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Datei</th>
                               </tr>
                             </thead>
                             <tbody>
                               {errors.slice(0, 5).map((error, index) => (
-                                <tr key={index} className="bg-gray-50 hover:bg-gray-100">
+                                <tr key={index} className="bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200">
                                   <td className="px-2 py-1.5 rounded-l-md">{error.Zeitpunkt}</td>
                                   <td className="px-2 py-1.5 font-mono text-xs rounded-r-md">{error.ErrorDatei}</td>
                                 </tr>
@@ -302,7 +302,7 @@ const ErrorWidget = ({ errorGroups, loading }) => {
                             </tbody>
                           </table>
                           {errors.length > 5 && (
-                            <div className="text-xs text-gray-500 text-center mt-2 py-1 bg-gray-50 rounded">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
                               + {errors.length - 5} weitere Einträge
                             </div>
                           )}
