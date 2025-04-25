@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
+import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
 
 /**
  * Widget zur Anzeige von Muster-Übereinstimmungen
@@ -11,8 +12,14 @@ import WidgetCard from '../layout/WidgetCard';
 const PatternMatchWidget = ({ patternData, loading }) => {
   const [selectedPattern, setSelectedPattern] = useState(null);
 
-  // Farben für das Diagramm
-  const COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F43F5E', '#F59E0B', '#10B981', '#3B82F6', '#6B7280'];
+  // Farben für das Diagramm - wir verwenden die zentrale Farbpalette
+  const getChartColors = (patterns) => {
+    if (!patterns || patterns.length === 0) return [];
+    return patterns.map(pattern => {
+      const normalizedType = normalizeErrorType(pattern.name);
+      return getErrorTypeColor(normalizedType);
+    });
+  };
 
   // Daten für das Kreisdiagramm vorbereiten
   const chartData = useMemo(() => {
@@ -130,36 +137,72 @@ const PatternMatchWidget = ({ patternData, loading }) => {
             </div>
           </div>
           
-          {/* Kreisdiagramm */}
+          {/* Kreisdiagramm und Zusammenfassung im Flex-Layout */}
           {chartData.length > 0 && (
             <div className="mb-4 mt-2">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Verteilung der Muster:</p>
-              <div className="h-48 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={70}
-                      paddingAngle={2}
-                      dataKey="value"
-                      labelLine={false}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={COLORS[index % COLORS.length]} 
-                          stroke={COLORS[index % COLORS.length]}
-                          strokeWidth={1}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend content={<CustomLegend />} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="h-48 md:h-40 md:w-2/5">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={65}
+                        paddingAngle={2}
+                        dataKey="value"
+                        labelLine={false}
+                      >
+                        {chartData.map((entry, index) => {
+                          const normalizedType = normalizeErrorType(entry.name);
+                          return (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={getErrorTypeColor(normalizedType)} 
+                              stroke={selectedPattern === entry.name ? '#000' : 'none'}
+                              strokeWidth={selectedPattern === entry.name ? 2 : 0}
+                            />
+                          );
+                        })}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Top-Muster-Übersicht */}
+                <div className="md:w-3/5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {chartData.slice(0, 4).map((entry, index) => {
+                      const percentage = Math.round((entry.value / totalPatterns) * 100);
+                      return (
+                        <div 
+                          key={`top-${index}`}
+                          className="flex items-center p-2 bg-gray-50 dark:bg-gray-700/30 rounded-md border border-gray-200 dark:border-gray-700"
+                          onClick={() => setSelectedPattern(selectedPattern === entry.name ? null : entry.name)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: getErrorTypeColor(normalizeErrorType(entry.name)) }}
+                          ></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{entry.name}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{entry.value}</span>
+                              <span className="text-xs font-medium" style={{ color: getErrorTypeColor(normalizeErrorType(entry.name)) }}>{percentage}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Legend content={<CustomLegend />} />
               </div>
             </div>
           )}
@@ -169,8 +212,8 @@ const PatternMatchWidget = ({ patternData, loading }) => {
             {patternCounts.map((pattern) => {
               const percentage = Math.round((pattern.count / totalPatterns) * 100);
               const isSelected = selectedPattern === pattern.type;
-              const colorIndex = patternCounts.findIndex(p => p.type === pattern.type) % COLORS.length;
-              const color = COLORS[colorIndex];
+              const normalizedType = normalizeErrorType(pattern.type);
+              const color = getErrorTypeColor(normalizedType);
               
               return (
                 <div 

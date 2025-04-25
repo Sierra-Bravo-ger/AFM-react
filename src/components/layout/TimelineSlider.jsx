@@ -139,8 +139,8 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Setze den Dragging-Status, der auch den Cursor-Stil beeinflusst
     setDragging('range');
-    document.body.style.cursor = 'grabbing';
     
     // Setze das Flag, um zu verhindern, dass der Slider nach dem Loslassen zurückspringt
     preventUpdateRef.current = true;
@@ -368,8 +368,8 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Setze den Dragging-Status
     setDragging(type);
-    document.body.style.cursor = 'ew-resize';
     
     // Setze das Flag, um zu verhindern, dass der Slider nach dem Loslassen zurückspringt
     preventUpdateRef.current = true;
@@ -388,11 +388,12 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       
       if (type === 'start') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(0, Math.min(endHandlePos - 10, initialStartPos + deltaX));
+        // Mindestabstand von 8px zwischen den Handles (statt 10px) wegen der schlankeren Handles
+        const newPos = Math.max(0, Math.min(endHandlePos - 8, initialStartPos + deltaX));
         setStartHandlePos(newPos);
       } else if (type === 'end') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(startHandlePos + 10, Math.min(rect.width, initialEndPos + deltaX));
+        const newPos = Math.max(startHandlePos + 8, Math.min(rect.width, initialEndPos + deltaX));
         setEndHandlePos(newPos);
       }
     };
@@ -407,11 +408,12 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       
       if (type === 'start') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(0, Math.min(endHandlePos - 10, initialStartPos + deltaX));
+        // Mindestabstand von 8px zwischen den Handles (statt 10px) wegen der schlankeren Handles
+        const newPos = Math.max(0, Math.min(endHandlePos - 8, initialStartPos + deltaX));
         setStartHandlePos(newPos);
       } else if (type === 'end') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(startHandlePos + 10, Math.min(rect.width, initialEndPos + deltaX));
+        const newPos = Math.max(startHandlePos + 8, Math.min(rect.width, initialEndPos + deltaX));
         setEndHandlePos(newPos);
       }
       
@@ -505,11 +507,12 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       
       if (type === 'start') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(0, Math.min(endHandlePos - 10, initialStartPos + deltaX));
+        // Mindestabstand von 8px zwischen den Handles (statt 10px) wegen der schlankeren Handles
+        const newPos = Math.max(0, Math.min(endHandlePos - 8, initialStartPos + deltaX));
         setStartHandlePos(newPos);
       } else if (type === 'end') {
         // Berechne neue Position und stelle sicher, dass sie im gültigen Bereich liegt
-        const newPos = Math.max(startHandlePos + 10, Math.min(rect.width, initialEndPos + deltaX));
+        const newPos = Math.max(startHandlePos + 8, Math.min(rect.width, initialEndPos + deltaX));
         setEndHandlePos(newPos);
       }
     };
@@ -646,13 +649,13 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
       {/* Zeitstrahl */}
       <div 
         ref={timelineRef}
-        className="h-8 bg-gray-200 dark:bg-gray-700 rounded-md relative"
+        className="h-8 bg-gray-200 dark:bg-gray-700 relative"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
         {/* Ausgewählter Bereich - jetzt draggable und touch-fähig */}
         <div 
-          className="absolute h-full bg-blue-200 dark:bg-blue-800/40 rounded-md cursor-grab hover:bg-blue-300 dark:hover:bg-blue-700/50"
+          className={`absolute h-full bg-blue-200 dark:bg-blue-800/40 hover:bg-blue-300 dark:hover:bg-blue-700/50 ${dragging === 'range' ? 'cursor-grabbing' : 'cursor-grab'}`}
           style={{ left: startPosition, width: `${endPosition - startPosition}px` }}
           onMouseDown={(e) => handleRangeMouseDown(e)}
           onTouchStart={(e) => handleRangeTouchStart(e)}
@@ -663,7 +666,7 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
           <div 
             key={index}
             className="absolute h-3 border-l border-gray-400 dark:border-gray-500"
-            style={{ left: marker.position }}
+            style={{ left: marker.position, pointerEvents: 'none' }}
           >
             <span className="absolute -ml-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
               {marker.label}
@@ -674,20 +677,24 @@ const TimelineSlider = ({ currentRange, onRangeChange, minDate, maxDate }) => {
         {/* Start-Slider */}
         <div 
           ref={startHandleRef}
-          className="absolute top-0 w-6 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-l-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500"
-          style={{ left: startPosition }}
+          className="absolute top-0 w-4 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-md border border-blue-600 shadow-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500 flex items-center justify-center"
+          style={{ left: startPosition, transform: 'translateX(-50%)' }}
           onMouseDown={(e) => handleSliderMouseDown('start', e)}
           onTouchStart={(e) => handleSliderTouchStart('start', e)}
-        />
+        >
+          <div className="w-0.5 h-4 bg-white dark:bg-gray-200 opacity-70"></div>
+        </div>
         
         {/* End-Slider */}
         <div 
           ref={endHandleRef}
-          className="absolute top-0 w-6 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-r-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500"
-          style={{ left: endPosition }}
+          className="absolute top-0 w-4 h-8 bg-blue-500 dark:bg-blue-400 cursor-ew-resize rounded-md border border-blue-600 shadow-md z-10 hover:bg-blue-600 dark:hover:bg-blue-500 flex items-center justify-center"
+          style={{ left: endPosition, transform: 'translateX(-50%)' }}
           onMouseDown={(e) => handleSliderMouseDown('end', e)}
           onTouchStart={(e) => handleSliderTouchStart('end', e)}
-        />
+        >
+          <div className="w-0.5 h-4 bg-white dark:bg-gray-200 opacity-70"></div>
+        </div>
         
         {/* Hover-Anzeige */}
         {hoverPosition !== null && hoverDate && (

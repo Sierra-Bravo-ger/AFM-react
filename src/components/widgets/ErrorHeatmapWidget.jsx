@@ -1,12 +1,31 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import WidgetCard from '../layout/WidgetCard';
+import { normalizeErrorType, getErrorTypeColor, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
 
 /**
  * Widget zur Anzeige der Fehler-Heatmap (Wochentag/Stunde)
- * @param {Array} errorHeatmap - 2D-Array [Tag][Stunde] mit Fehlerzahlen aus createErrorHeatmap
+ * @param {Object} errorHeatmapData - Objekt mit Heatmap-Daten, Fehlertypen und Fehlertypenzählungen
+ * @param {Function} onFilterChange - Callback-Funktion, die bei Änderung des Fehlertyp-Filters aufgerufen wird
  */
-const ErrorHeatmapWidget = ({ errorHeatmap }) => {
-  if (!errorHeatmap) {
+const ErrorHeatmapWidget = ({ errorHeatmapData, onFilterChange }) => {
+  // State für den ausgewählten Fehlertyp
+  const [selectedErrorType, setSelectedErrorType] = useState(null);
+
+  // Wir verwenden jetzt die zentralen Utility-Funktionen für Fehlertypen
+
+  // Handler für Klick auf einen Fehlertyp-Filter-Button
+  const handleErrorTypeClick = (errorType) => {
+    // Wenn der gleiche Fehlertyp erneut angeklickt wird, setze den Filter zurück
+    const newSelectedType = selectedErrorType === errorType ? null : errorType;
+    setSelectedErrorType(newSelectedType);
+    
+    // Informiere die übergeordnete Komponente über die Änderung
+    if (onFilterChange) {
+      onFilterChange(newSelectedType);
+    }
+  };
+
+  if (!errorHeatmapData || !errorHeatmapData.heatmap) {
     return (
       <WidgetCard title="Fehler-Heatmap (Wochentag/Stunde)">
         <div className="flex justify-center items-center h-40">
@@ -15,13 +34,16 @@ const ErrorHeatmapWidget = ({ errorHeatmap }) => {
       </WidgetCard>
     );
   }
+  
+  // Extrahiere die Heatmap-Daten und Fehlertypen
+  const { heatmap, errorTypes, errorTypeCounts } = errorHeatmapData;
 
   // Wochentagsnamen
   const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
   
   // Maximalen Wert finden für die Farbskalierung
   let maxValue = 0;
-  errorHeatmap.forEach(day => {
+  heatmap.forEach(day => {
     day.forEach(hour => {
       if (hour > maxValue) maxValue = hour;
     });
@@ -57,21 +79,61 @@ const ErrorHeatmapWidget = ({ errorHeatmap }) => {
       title="Fehler-Heatmap (Wochentag/Stunde)" 
       icon={heatmapIcon}
     >
-      <div className="p-4 flex flex-col items-center">
-        <div className="overflow-x-auto w-full flex justify-center">
-          <table className="mx-auto">
+      <div className="p-4 flex flex-col w-full">
+        {/* Fehlertyp-Filter-Buttons */}
+        {errorTypes && errorTypes.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Nach Fehlertyp filtern:</p>
+            <div className="flex flex-wrap gap-2">
+              {/* Button zum Zurücksetzen des Filters */}
+              <button
+                onClick={() => handleErrorTypeClick(null)}
+                className={`px-2 py-1 text-xs font-medium rounded-full transition-colors duration-200 ${selectedErrorType === null
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Alle
+              </button>
+              {errorTypes.map(errorType => {
+                // Normalisiere den Fehlertyp für konsistente Anzeige
+                const normalizedType = normalizeErrorType(errorType);
+                return (
+                  <button
+                    key={errorType}
+                    onClick={() => handleErrorTypeClick(errorType)}
+                    className={`px-2 py-1 text-xs font-medium rounded-full transition-colors duration-200 ${selectedErrorType === errorType
+                      ? `${getErrorTypeColor(normalizedType, 'bg')} text-white`
+                      : `bg-gray-200 ${getErrorTypeColor(normalizedType, 'text')} dark:bg-gray-700 dark:text-gray-300`
+                    }`}
+                    style={selectedErrorType === errorType ? {} : { borderLeft: `3px solid ${getErrorTypeColor(normalizedType)}` }}
+                  >
+                    <span>{normalizedType}</span>
+                    <span className="ml-1 px-1.5 py-0.5 bg-white bg-opacity-20 rounded-full text-xs">
+                      {errorTypeCounts[errorType] || 0}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        {/* Heatmap-Tabelle */}
+        <div className="overflow-x-auto w-full">
+          <table className="w-full">
             <thead>
               <tr>
-                <th className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400"></th>
+                <th className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 w-10"></th>
                 {Array.from({ length: 24 }, (_, i) => (
-                  <th key={i} className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
-                    {i}
+                  <th key={i} className="px-1 py-1 text-xs text-gray-500 dark:text-gray-400 w-auto">
+                    {i}h
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {errorHeatmap.map((day, dayIndex) => (
+              {heatmap.map((day, dayIndex) => (
                 <tr key={dayIndex}>
                   <td className="px-2 py-1 text-xs font-medium text-gray-500 dark:text-gray-400">
                     {dayNames[dayIndex]}
@@ -79,10 +141,9 @@ const ErrorHeatmapWidget = ({ errorHeatmap }) => {
                   {day.map((count, hourIndex) => (
                     <td 
                       key={hourIndex}
-                      className={`px-2 py-1 text-xs text-center ${getTextColor(count)}`}
+                      className={`px-1 py-1 text-xs text-center ${getTextColor(count)}`}
                       style={{ 
                         backgroundColor: getCellColor(count),
-                        width: '22px',
                         height: '22px'
                       }}
                     >
@@ -94,16 +155,19 @@ const ErrorHeatmapWidget = ({ errorHeatmap }) => {
             </tbody>
           </table>
         </div>
+        
+        {/* Zusammenfassung */}
+        {selectedErrorType && (
+          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            Zeigt nur Fehler vom Typ: <span className="font-medium" style={{ color: getErrorTypeColor(selectedErrorType) }}>{selectedErrorType}</span>
+          </div>
+        )}
+        
+        {/* Farbskala-Legende */}
         <div className="mt-4 flex items-center justify-center w-full">
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
             <span>Weniger</span>
-            <div className="mx-2 flex">
-              <div className="w-4 h-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0)' }}></div>
-              <div className="w-4 h-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.25)' }}></div>
-              <div className="w-4 h-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.5)' }}></div>
-              <div className="w-4 h-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.75)' }}></div>
-              <div className="w-4 h-4" style={{ backgroundColor: 'rgba(239, 68, 68, 1)' }}></div>
-            </div>
+            <div className="w-24 h-3 mx-2 rounded-full" style={{ background: 'linear-gradient(to right, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 1))' }}></div>
             <span>Mehr</span>
           </div>
         </div>

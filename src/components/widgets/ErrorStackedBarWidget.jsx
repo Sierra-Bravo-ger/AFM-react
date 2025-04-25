@@ -1,15 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend
-} from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
+import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
 
 /**
  * ErrorStackedBarWidget - Zeigt die Verteilung von Fehlertypen über Zeit als gestapelte Balken
@@ -20,15 +12,10 @@ import WidgetCard from '../layout/WidgetCard';
 const ErrorStackedBarWidget = ({ patternData, loading }) => {
   // Zeitansicht: 'day' oder 'hour'
   const [viewMode, setViewMode] = useState('auto');
+  // State für ausgeblendete Fehlertypen
+  const [hiddenTypes, setHiddenTypes] = useState([]);
   
-  // Normalisierungsfunktion für Mustertypen
-  const normalizeMusterType = (type) => {
-    // Bekannte Probleme mit Umlauten beheben
-    const normalizedType = type
-      .replace(/ZeitÃ¼berschreitung/g, 'Zeitüberschreitung')
-      .replace(/Verbindung von peer/g, 'Verbindung von Peer');
-    return normalizedType || 'Unbekannt';
-  };
+  // Wir verwenden jetzt die zentrale Utility-Funktion für die Normalisierung von Fehlertypen
 
   // Verarbeite die Daten für das Diagramm
   const chartData = useMemo(() => {
@@ -63,7 +50,7 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
       patternData.forEach(pattern => {
         const date = new Date(pattern.Zeitpunkt);
         const hourKey = `${date.getHours()}:00`;
-        const patternType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+        const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
         
         if (!groupedData[hourKey][patternType]) {
           groupedData[hourKey][patternType] = 0;
@@ -95,7 +82,7 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
       patternData.forEach(pattern => {
         const date = new Date(pattern.Zeitpunkt);
         const dateKey = date.toISOString().split('T')[0];
-        const patternType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+        const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
         
         if (!dateMap[dateKey]) return; // Überspringe, falls außerhalb des Zeitraums
         
@@ -121,23 +108,16 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
     
     const types = new Set();
     patternData.forEach(pattern => {
-      const normalizedType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+      const normalizedType = normalizeErrorType(pattern.Muster || 'Unbekannt');
       types.add(normalizedType);
     });
     
     return Array.from(types);
   }, [patternData]);
   
-  // Farbpalette für die verschiedenen Mustertypen
-  const colors = {
-    'Zeitüberschreitung': '#FF6B81',
-    'Timeout': '#36A2EB',
-    'multiple Rows': '#FFCD56',
-    'nicht definiert': '#4BC0C0',
-    'lock conflict': '#9966FF',
-    'deadlock': '#FF9F40',
-    'Verbindung von Peer': '#FF6384',
-    'Unbekannt': '#C9CBCF'
+  // Wir verwenden jetzt die zentrale Farbpalette aus ErrorTypeUtils
+  const getTypeColor = (type) => {
+    return getErrorTypeColor(type, 'hex');
   };
   
   // Bestimme den automatischen Anzeigemodus basierend auf den Daten
@@ -208,9 +188,9 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
   
   // Chart-Inhalt
   const chartContent = (
-    <div className="h-96">
+    <div>
       {chartData.length > 0 ? (
-        <div className="h-full p-4 bg-white dark:bg-gray-800">
+        <div className="p-4 bg-white dark:bg-gray-800">
           {/* Umschaltknöpfe für die Ansicht */}
           <div className="flex justify-end mb-4">
             <div className="inline-flex rounded-md shadow-sm" role="group">
@@ -241,24 +221,37 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
           {/* Legende */}
           <div className="mb-4 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded transition-colors duration-200">
             <div className="flex flex-wrap gap-3 text-xs">
-              {patternTypes.map((type) => (
-                <div key={type} className="flex items-center">
+              {patternTypes.map((type) => {
+                const isHidden = hiddenTypes.includes(type);
+                return (
                   <div 
-                    className="w-4 h-4 mr-1 rounded" 
-                    style={{ backgroundColor: colors[type] || '#C9CBCF' }}
-                  ></div>
-                  <span className="text-gray-700 dark:text-gray-300">{type}</span>
-                </div>
-              ))}
+                    key={type} 
+                    className="flex items-center px-2 py-1 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                    onClick={() => {
+                      if (isHidden) {
+                        setHiddenTypes(hiddenTypes.filter(t => t !== type));
+                      } else {
+                        setHiddenTypes([...hiddenTypes, type]);
+                      }
+                    }}
+                  >
+                    <div 
+                      className={`w-4 h-4 mr-1 rounded ${isHidden ? 'opacity-30' : ''}`} 
+                      style={{ backgroundColor: getTypeColor(type) }}
+                    ></div>
+                    <span className={`text-gray-700 dark:text-gray-300 ${isHidden ? 'line-through opacity-50' : ''}`}>{type}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
           
           {/* Diagramm */}
-          <div className="w-full h-full bg-white dark:bg-gray-800">
+          <div style={{ height: '400px' }} className="w-full bg-white dark:bg-gray-800">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
+                margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 style={{ backgroundColor: 'inherit' }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" className="dark:stroke-gray-600" />
@@ -288,15 +281,17 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ display: 'none' }} />
                 
-                {patternTypes.map((type) => (
-                  <Bar 
-                    key={type}
-                    dataKey={type}
-                    stackId="a"
-                    fill={colors[type] || '#C9CBCF'}
-                    name={type}
-                  />
-                ))}
+                {patternTypes
+                  .filter(type => !hiddenTypes.includes(type))
+                  .map((type) => (
+                    <Bar 
+                      key={type}
+                      dataKey={type}
+                      stackId="a"
+                      fill={getTypeColor(type)}
+                      name={type}
+                    />
+                  ))}
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -1,15 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend
-} from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
+import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
 
 /**
  * ErrorStackedLineWidget - Zeigt die Verteilung von Fehlertypen über Zeit als gestapelte Linien
@@ -19,15 +11,10 @@ import WidgetCard from '../layout/WidgetCard';
  */
 const ErrorStackedLineWidget = ({ patternData, loading }) => {
   const [expanded, setExpanded] = useState(false);
+  // State für ausgeblendete Fehlertypen
+  const [hiddenTypes, setHiddenTypes] = useState([]);
   
-  // Normalisierungsfunktion für Mustertypen
-  const normalizeMusterType = (type) => {
-    // Bekannte Probleme mit Umlauten beheben
-    const normalizedType = type
-      .replace(/ZeitÃ¼berschreitung/g, 'Zeitüberschreitung')
-      .replace(/Verbindung von peer/g, 'Verbindung von Peer');
-    return normalizedType || 'Unbekannt';
-  };
+  // Wir verwenden jetzt die zentrale Utility-Funktion für die Normalisierung von Fehlertypen
 
   // Verarbeite die Daten für das Diagramm
   const chartData = useMemo(() => {
@@ -51,7 +38,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
     patternData.forEach(pattern => {
       const date = new Date(pattern.Zeitpunkt);
       const hour = `${date.getHours()}:00`;
-      const patternType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+      const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
       
       if (!groupedData[hour][patternType]) {
         groupedData[hour][patternType] = 0;
@@ -75,7 +62,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
     
     const types = new Set();
     patternData.forEach(pattern => {
-      const normalizedType = normalizeMusterType(pattern.Muster || 'Unbekannt');
+      const normalizedType = normalizeErrorType(pattern.Muster || 'Unbekannt');
       types.add(normalizedType);
     });
     
@@ -83,15 +70,9 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
   }, [patternData]);
   
   // Farbpalette für die verschiedenen Mustertypen - hellere Farben für weißes Design
-  const colors = {
-    'Zeitüberschreitung': '#FF6B81',
-    'Timeout': '#36A2EB',
-    'multiple Rows': '#FFCD56',
-    'nicht definiert': '#4BC0C0',
-    'lock conflict': '#9966FF',
-    'deadlock': '#FF9F40',
-    'Verbindung von Peer': '#FF6384',
-    'Unbekannt': '#C9CBCF'
+  // Wir verwenden jetzt die zentrale Farbpalette aus ErrorTypeUtils
+  const getTypeColor = (type) => {
+    return getErrorTypeColor(type, 'hex');
   };
   
   // Zeige Lade-Skeleton wenn Daten geladen werden
@@ -118,7 +99,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
         <div key={type} className="flex items-center">
           <div 
             className="w-4 h-4 mr-1 rounded" 
-            style={{ backgroundColor: colors[type] || '#C9CBCF' }}
+            style={{ backgroundColor: getTypeColor(type) }}
           ></div>
           <span className="text-gray-700 dark:text-gray-300">{type}</span>
         </div>
@@ -128,28 +109,41 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
 
   // Chart-Inhalt
   const chartContent = (
-    <div className="h-96">
+    <div>
       {chartData.length > 0 ? (
-        <div className="h-full p-4 bg-white dark:bg-gray-800">
+        <div className="p-4 bg-white dark:bg-gray-800">
           {/* Legende innerhalb des Hauptinhalts */}
           <div className="mb-4 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded transition-colors duration-200">
             <div className="flex flex-wrap gap-3 text-xs">
-              {patternTypes.map((type) => (
-                <div key={type} className="flex items-center">
+              {patternTypes.map((type) => {
+                const isHidden = hiddenTypes.includes(type);
+                return (
                   <div 
-                    className="w-4 h-4 mr-1 rounded" 
-                    style={{ backgroundColor: colors[type] || '#C9CBCF' }}
-                  ></div>
-                  <span className="text-gray-700 dark:text-gray-300">{type}</span>
-                </div>
-              ))}
+                    key={type} 
+                    className="flex items-center px-2 py-1 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                    onClick={() => {
+                      if (isHidden) {
+                        setHiddenTypes(hiddenTypes.filter(t => t !== type));
+                      } else {
+                        setHiddenTypes([...hiddenTypes, type]);
+                      }
+                    }}
+                  >
+                    <div 
+                      className={`w-4 h-4 mr-1 rounded ${isHidden ? 'opacity-30' : ''}`} 
+                      style={{ backgroundColor: getTypeColor(type) }}
+                    ></div>
+                    <span className={`text-gray-700 dark:text-gray-300 ${isHidden ? 'line-through opacity-50' : ''}`}>{type}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className="w-full h-full bg-white dark:bg-gray-800">
+          <div style={{ height: '400px' }} className="w-full bg-white dark:bg-gray-800">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 20, left: 0, bottom: 20 }}
+                margin={{ top: 10, right: 20, left: 0, bottom: 40 }}
                 style={{ backgroundColor: 'inherit' }}
               >
                 <defs>
@@ -177,20 +171,22 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
                   formatter={(value, name) => [value || 0, name]}
                   labelFormatter={(hour) => `${hour}:00 Uhr`}
                 />
-                {patternTypes.map((type) => (
-                  <Area 
-                    key={type}
-                    type="monotone"
-                    dataKey={type}
-                    stackId="1"
-                    stroke={colors[type] || '#C9CBCF'}
-                    strokeWidth={2}
-                    fillOpacity={0.1}
-                    fill={colors[type] || '#C9CBCF'}
-                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
-                    dot={{ r: 3, fill: colors[type] || '#C9CBCF', stroke: '#fff', strokeWidth: 1 }}
-                  />
-                ))}
+                {patternTypes
+                  .filter(type => !hiddenTypes.includes(type))
+                  .map((type) => (
+                    <Area 
+                      key={type}
+                      type="monotone"
+                      dataKey={type}
+                      stackId="1"
+                      stroke={getTypeColor(type)}
+                      strokeWidth={2}
+                      fillOpacity={0.1}
+                      fill={getTypeColor(type)}
+                      activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
+                      dot={{ r: 3, fill: getTypeColor(type), stroke: '#fff', strokeWidth: 1 }}
+                    />
+                  ))}
               </AreaChart>
             </ResponsiveContainer>
           </div>

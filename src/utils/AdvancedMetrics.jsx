@@ -55,12 +55,16 @@ export const calculateSystemHealth = (statusStats, errorData, inputData, pattern
     healthStatus = 'Schlecht';
   }
   
+  // Anzahl der neuen Dateien im Input-Verzeichnis (diffInput aus statusStats)
+  const fileInput = statusStats && statusStats.diffInput ? statusStats.diffInput : 0;
+  
   return {
     score: Math.max(0, Math.min(100, healthScore)),
     status: healthStatus,
     errorRate,
     throughput,
-    errorTrend
+    errorTrend,
+    fileInput
   };
 };
 
@@ -225,21 +229,49 @@ export const analyzeErrorsByDay = (errorData) => {
  * @param {Array} errorData - Fehlerdaten
  * @returns {Array} - 2D-Array [Tag][Stunde] mit Fehlerzahlen
  */
-export const createErrorHeatmap = (errorData) => {
+// Normalisierungsfunktion für Mustertypen
+// Wir verwenden jetzt die zentrale Utility-Funktion aus ErrorTypeUtils.jsx
+
+import { normalizeErrorType, extractErrorType } from './ErrorTypeUtils';
+
+export const createErrorHeatmap = (errorData, selectedErrorType = null) => {
   if (!errorData || errorData.length === 0) {
-    return Array(7).fill().map(() => Array(24).fill(0));
+    return {
+      heatmap: Array(7).fill().map(() => Array(24).fill(0)),
+      errorTypes: [],
+      errorTypeCounts: {}
+    };
   }
   
   // Initialisiere 2D-Array [7 Tage][24 Stunden]
   const heatmap = Array(7).fill().map(() => Array(24).fill(0));
   
+  // Sammle Fehlertypen und zähle sie
+  const errorTypeCounts = {};
+  const filteredData = selectedErrorType ? 
+    errorData.filter(error => extractErrorType(error, 'error_log') === selectedErrorType) : 
+    errorData;
+  
   // Zähle Fehler pro Tag/Stunde
-  errorData.forEach(error => {
+  filteredData.forEach(error => {
     const date = new Date(error.Zeitpunkt);
     const day = date.getDay();
     const hour = date.getHours();
     heatmap[day][hour]++;
+    
+    // Zähle Fehlertypen
+    const errorType = extractErrorType(error, 'error_log');
+    errorTypeCounts[errorType] = (errorTypeCounts[errorType] || 0) + 1;
   });
   
-  return heatmap;
+  // Extrahiere eindeutige Fehlertypen
+  const errorTypes = Object.keys(errorTypeCounts).sort((a, b) => 
+    errorTypeCounts[b] - errorTypeCounts[a]
+  );
+  
+  return {
+    heatmap,
+    errorTypes,
+    errorTypeCounts
+  };
 };

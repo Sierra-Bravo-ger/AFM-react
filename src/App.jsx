@@ -61,6 +61,9 @@ function App() {
   const [errorsByDay, setErrorsByDay] = useState(null);
   const [errorHeatmap, setErrorHeatmap] = useState(null);
   
+  // State für den ausgewählten Fehlertyp in der Heatmap
+  const [selectedErrorType, setSelectedErrorType] = useState(null);
+  
   // Zeitraum-Filter
   const [dateRange, setDateRange] = useState({
     startDate: null,
@@ -193,7 +196,7 @@ function App() {
     const newThroughput = calculateThroughput(newStatusStats, filteredInput);
     const newErrorsByHour = analyzeErrorsByHour(filteredError);
     const newErrorsByDay = analyzeErrorsByDay(filteredError);
-    const newErrorHeatmap = createErrorHeatmap(filteredError);
+    const newErrorHeatmap = createErrorHeatmap(filteredError, selectedErrorType);
     
     // Erweiterte Metriken aktualisieren
     setSystemHealth(newSystemHealth);
@@ -201,7 +204,12 @@ function App() {
     setErrorsByHour(newErrorsByHour);
     setErrorsByDay(newErrorsByDay);
     setErrorHeatmap(newErrorHeatmap);
-  }, [dateRange, statusData, errorData, inputData, patternData, filterDataByDateRange]);
+  }, [dateRange, statusData, errorData, inputData, patternData, filterDataByDateRange, selectedErrorType]);
+  
+  // Handler für Änderungen am Fehlertyp-Filter
+  const handleErrorTypeChange = useCallback((errorType) => {
+    setSelectedErrorType(errorType);
+  }, []);
   
   return (
     <DashboardLayout>
@@ -243,7 +251,10 @@ function App() {
       
       {/* Fehler-Heatmap */}
       <div className="mb-6">
-        <ErrorHeatmapWidget errorHeatmap={errorHeatmap} loading={loading} />
+        <ErrorHeatmapWidget 
+          errorHeatmapData={errorHeatmap} 
+          onFilterChange={handleErrorTypeChange} 
+        />
       </div>
       
       {/* Datei-Zählungs-Widget */}

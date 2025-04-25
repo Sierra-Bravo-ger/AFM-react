@@ -205,10 +205,23 @@ Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl
 - **Intuitive Bedienung**: Hand-Cursor (grab/grabbing) für bessere Benutzerführung
 - **Verzögerte Aktualisierung**: Filterung wird erst beim Loslassen der Handles ausgelöst
 - **Synchronisation**: Nahtlose Integration mit Datumseingabefeldern und Schnellfiltern
+- **Touch-Unterstützung**: Optimiert für mobile Geräte mit zuverlässiger Touch-Bedienung
+- **Adaptive Markerdichte**: Automatische Anpassung der Zeitmarker-Anzahl je nach Bildschirmbreite
+
+### Zeitraum-Navigation
+
+Die Zeitraum-Navigation ermöglicht eine effiziente Analyse aufeinanderfolgender Zeitabschnitte:
+
+- **Zeitraum-Verschiebungs-Buttons**: "Zurück" und "Weiter" Buttons zum Verschieben des Zeitraums
+- **Intelligente Zeitspannen-Berechnung**: Verschiebung um exakt die aktuelle Zeitspanne (z.B. 8 Stunden)
+- **Grenzen-Respektierung**: Automatische Anpassung an min/max-Datumsgrenzen
+- **Konsistente Zeitspannen**: Beibehaltung der exakten Zeitspanne bei Verschiebung
 
 ### UI-Verbesserungen
 
-- **Optimierte Datumseingabe**: Zentrales Label "Daten gefiltert von:" für bessere Benutzerführung
-- **Konsistente Diagramme**: Einheitliche Hintergründe und Styling für alle Visualisierungen
-- **Verbesserte Fehlertypen-Darstellung**: Korrekte Darstellung von Umlauten in Fehlertypen
+- **Responsives Design**: Optimierte Layouts für Desktop und mobile Geräte
+- **Optimierte Datumseingabe**: Kompaktes 2x2 Grid für Datum/Zeit-Eingabefelder mit einheitlicher Breite
+- **Verbesserte Diagramme**: Volle Breite für Heatmap und optimierte Layouts für Donut-Diagramme
+- **Verbesserte Fehlertypen-Darstellung**: Korrekte Darstellung von Umlauten und bessere Lesbarkeit
 - **Moderne Benutzeroberfläche**: Klare visuelle Hierarchie und intuitive Bedienelemente
+- **Optimierter Header**: Anpassungsfähiges Layout für Status-Badges und Zeitangaben

@@ -57,9 +57,10 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
       const formattedEnd = formatDateForInput(currentDateRange.endDate);
       
       // Nur aktualisieren, wenn sich die Werte tatsächlich geändert haben
-      // und wenn der lokale Filtertyp nicht 'custom' ist (d.h. nicht vom Benutzer geändert)
+      // und wenn der lokale Filtertyp weder 'custom' noch 'shifted' ist
+      // (d.h. nicht vom Benutzer geändert oder durch Zeitraum-Verschiebung)
       if ((formattedStart !== localFilter.startDate || formattedEnd !== localFilter.endDate) && 
-          localFilter.type !== 'custom') {
+          localFilter.type !== 'custom' && localFilter.type !== 'shifted') {
         setLocalFilter(prev => ({
           ...prev,
           startDate: formattedStart,
@@ -113,6 +114,74 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
     });
   }, [localFilter, onFilterChange]);
   
+  // Funktion zum Verschieben des Zeitraums um die aktuelle Zeitspanne
+  const shiftTimeRange = useCallback((direction) => {
+    // Direkte Manipulation ohne useEffect-Trigger
+    // Aktuelle Start- und Enddaten aus dem lokalen Filter holen
+    const currentStartDate = new Date(`${localFilter.startDate}T${localFilter.startTime || '00:00'}:00`);
+    const currentEndDate = new Date(`${localFilter.endDate}T${localFilter.endTime || '23:59'}:00`);
+    
+    // Zeitdifferenz zwischen Start und Ende berechnen (in Millisekunden)
+    const timeDifference = currentEndDate.getTime() - currentStartDate.getTime();
+    
+    // Neue Start- und Enddaten berechnen, je nach Richtung
+    let newStartDate, newEndDate;
+    
+    if (direction === 'forward') {
+      // Vorwärts: Beide Daten um die Zeitdifferenz erhöhen
+      newStartDate = new Date(currentStartDate.getTime() + timeDifference);
+      newEndDate = new Date(currentEndDate.getTime() + timeDifference);
+      
+      // Prüfen, ob das neue Enddatum nicht über das maxDate hinausgeht
+      const maxDateObj = maxDate ? new Date(maxDate) : null;
+      if (maxDateObj && newEndDate > maxDateObj) {
+        // Wenn ja, dann auf maxDate begrenzen und Start entsprechend anpassen
+        newEndDate = new Date(maxDateObj);
+        newStartDate = new Date(newEndDate.getTime() - timeDifference);
+      }
+    } else {
+      // Rückwärts: Beide Daten um die Zeitdifferenz verringern
+      newStartDate = new Date(currentStartDate.getTime() - timeDifference);
+      newEndDate = new Date(currentEndDate.getTime() - timeDifference);
+      
+      // Prüfen, ob das neue Startdatum nicht unter das minDate fällt
+      const minDateObj = minDate ? new Date(minDate) : null;
+      if (minDateObj && newStartDate < minDateObj) {
+        // Wenn ja, dann auf minDate begrenzen und Ende entsprechend anpassen
+        newStartDate = new Date(minDateObj);
+        newEndDate = new Date(newStartDate.getTime() + timeDifference);
+      }
+    }
+    
+    // Formatiere die Daten für die Eingabefelder
+    const formattedStartDate = formatDateForInput(newStartDate);
+    const formattedEndDate = formatDateForInput(newEndDate);
+    
+    // Formatiere die Zeiten für die Eingabefelder
+    const formattedStartTime = newStartDate.getHours().toString().padStart(2, '0') + ':' + 
+                              newStartDate.getMinutes().toString().padStart(2, '0');
+    const formattedEndTime = newEndDate.getHours().toString().padStart(2, '0') + ':' + 
+                            newEndDate.getMinutes().toString().padStart(2, '0');
+    
+    // Direkt die übergeordnete Komponente informieren, ohne den lokalen Zustand zu ändern
+    // Dies verhindert, dass der useEffect-Hook erneut ausgelöst wird
+    onFilterChange({
+      startDate: newStartDate,
+      endDate: newEndDate
+    });
+    
+    // Erst danach den lokalen Zustand aktualisieren
+    // Wichtig: Wir setzen hier explizit einen Typ, der nicht 'custom' ist,
+    // damit der useEffect-Hook nicht erneut ausgelöst wird
+    setLocalFilter({
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
+      startTime: formattedStartTime,
+      endTime: formattedEndTime,
+      type: 'shifted' // Spezieller Typ für verschobene Zeiträume
+    });
+  }, [localFilter, minDate, maxDate, formatDateForInput, onFilterChange]);
+
   // Handler für Änderungen am Filtertyp
   const handleFilterTypeChange = useCallback((type) => {
     if (!maxDate) return;
@@ -352,6 +421,32 @@ const FilterBar = ({ onFilterChange, minDate, maxDate, currentDateRange }) => {
           </button>
         </div>
         
+        {/* Zeitraum-Verschiebungs-Buttons */}
+        <div className="flex justify-center gap-4 mb-2">
+          <button
+            type="button"
+            onClick={() => shiftTimeRange('backward')}
+            className="flex items-center justify-center px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 rounded-md transition-colors duration-200 shadow-sm"
+            title="Zeitraum rückwärts verschieben"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            Zurück
+          </button>
+          <button
+            type="button"
+            onClick={() => shiftTimeRange('forward')}
+            className="flex items-center justify-center px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 rounded-md transition-colors duration-200 shadow-sm"
+            title="Zeitraum vorwärts verschieben"
+          >
+            Weiter
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-2xl mx-auto">
           {/* Von-Datum - erste Zeile im Grid */}
           <div className="grid grid-cols-2 items-center">
