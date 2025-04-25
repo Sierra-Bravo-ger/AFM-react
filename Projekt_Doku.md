@@ -253,3 +253,39 @@ Die Zeitraum-Navigation ermöglicht eine effiziente Analyse aufeinanderfolgender
 - **Verbesserte Fehlertypen-Darstellung**: Korrekte Darstellung von Umlauten und bessere Lesbarkeit
 - **Moderne Benutzeroberfläche**: Klare visuelle Hierarchie und intuitive Bedienelemente
 - **Optimierter Header**: Anpassungsfähiges Layout für Status-Badges und Zeitangaben
+- **Korrigiertes Root-Element-Styling**: Entfernung des unerwünschten Paddings aus der Vite-Standardvorlage
+
+### CSS-Anpassungen
+
+#### Korrektur des Root-Element-Paddings
+
+Bei der Erstellung einer React-Anwendung mit Vite wird standardmäßig eine `App.css`-Datei generiert, die ein Padding von 2rem (32px) für das Root-Element definiert:
+
+```css
+/* Ursprüngliche CSS-Regel aus der Vite-Vorlage */
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+```
+
+Dieses Padding verursacht unerwünschte Abstände um die gesamte Anwendung, insbesondere am oberen Rand, was für ein Dashboard nicht optimal ist. Die Lösung bestand darin, folgende Anpassungen vorzunehmen:
+
+```css
+/* Angepasste CSS-Regel */
+#root {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+}
+```
+
+Diese Änderungen bewirken:
+- Kein Abstand mehr um die Hauptanwendung
+- Die Anwendung nutzt die volle Breite des Bildschirms
+- Das Dashboard kann nahtlos bis zum Rand des Fensters angezeigt werden
+
+Diese Optimierung verbessert die Nutzung des verfügbaren Bildschirmplatzes und sorgt für ein konsistenteres Layout des Dashboards.
