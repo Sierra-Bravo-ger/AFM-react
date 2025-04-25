@@ -196,9 +196,37 @@ Verarbeitet die geladenen Daten für die verschiedenen Widgets:
 
 ## Neue Funktionen
 
+### SystemHealthWidget
+
+Das SystemHealthWidget bietet eine intuitive und farbkodierte Visualisierung der Systemgesundheit:
+
+- **GaugeChart für HealthScore**:
+  - Halbkreisförmiges Gauge mit dynamischer Farbkodierung (grün, hellgrün, gelb, rot)
+  - Prozentwert am unteren Rand des Charts in passender Farbe mit Schattenwurf für bessere Lesbarkeit
+  - Responsive Anpassung an verschiedene Größen und automatische Anpassung an helles/dunkles Farbschema
+
+- **Statusindikatoren**:
+  - Übersichtliche Darstellung von Fehlerrate, Durchsatz, Fehlertrend und Datei-Eingang
+  - Farbkodierte Statusanzeige (grün, gelb, rot) mit dynamischen Schwellenwerten
+  - Datei-Eingang-Indikator mit drei Zuständen: Aktiv (grün), Dateistau (rot), Inaktiv (gelb)
+
 ### TimelineSlider
 
 Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl mit folgenden Funktionen:
+
+- **Präzise Zeitraumauswahl**:
+  - Schlankere Handles (16px statt 24px) für präzisere Positionierung
+  - Zentrierte Positionierung der Handles mit `transform: translateX(-50%)`
+  - Visuelles Feedback durch einen feinen weißen Strich in der Mitte der Handles
+  - Mindestabstand zwischen Handles auf 8px reduziert
+
+- **Optimierter Track**:
+  - Eckige Kanten für korrekte Ausrichtung der Zeitmarker-Beschriftungen
+  - Zeitmarker mit `pointerEvents: 'none'` für konsistentes Cursor-Verhalten
+
+- **Verbesserte Benutzerfreundlichkeit**:
+  - Konsistentes Cursor-Verhalten beim Ziehen durch CSS-Klassen statt DOM-Manipulation
+  - Optimierte Touch-Unterstützung für mobile Geräte
 
 - **Draggable Handles**: Start- und Endzeit können durch Ziehen der Handles angepasst werden
 - **Bereichsauswahl**: Der ausgewählte Bereich zwischen den Handles kann als Ganzes verschoben werden
