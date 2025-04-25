@@ -3769,3 +3769,5 @@
 2025-04-25 17:13:03;test140866.error;Timeout;Timeout
 2025-04-25 17:20:03;test140900.error;multiple Rows;multiple Rows
 2025-04-25 17:27:03;test140939.error;lock conflict;lock conflict
+2025-04-25 17:32:03;test140970.error;ZeitÃ¼berschreitung;ZeitÃ¼berschreitung
+2025-04-25 17:40:03;test141010.error;deadlock;deadlock

@@ -25,3 +25,6 @@ AFMlog_OLD/
 *.njsproj
 *.sln
 *.sw?
+
+# PowerShell Skripte
+WatchtowerUpdater.ps1
