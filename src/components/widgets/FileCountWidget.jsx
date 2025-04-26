@@ -149,15 +149,18 @@ const FileCountWidget = ({ fileData, loading }) => {
               <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{maxEntry.Anzahl} ({maxEntry.Zeitpunkt})</span>
             </div>
             <ul className="space-y-1">
-              {latestEntry.Dateien.slice(0, 5).map((file, index) => (
-                <li key={index} className="font-mono text-indigo-700 truncate bg-indigo-50 px-2 py-1 rounded">{file}</li>
-              ))}
-              {latestEntry.Dateien.length > 5 && (
-                <li className="text-center text-gray-500 italic text-xs mt-1">
-                  + {latestEntry.Dateien.length - 5} weitere Dateien
-                </li>
-              )}
-              {!latestEntry.Dateien || latestEntry.Dateien.length === 0 && (
+              {latestEntry && latestEntry.Dateien && latestEntry.Dateien.length > 0 ? (
+                <>
+                  {latestEntry.Dateien.slice(0, 5).map((file, index) => (
+                    <li key={index} className="font-mono text-indigo-700 truncate bg-indigo-50 px-2 py-1 rounded">{file}</li>
+                  ))}
+                  {latestEntry.Dateien.length > 5 && (
+                    <li className="text-center text-gray-500 italic text-xs mt-1">
+                      + {latestEntry.Dateien.length - 5} weitere Dateien
+                    </li>
+                  )}
+                </>
+              ) : (
                 <li className="flex items-center justify-center py-3 text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -20,40 +20,94 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
   const chartData = useMemo(() => {
     if (!patternData || patternData.length === 0) return [];
     
-    // Gruppiere Daten nach Zeitstempel und Muster
-    const groupedData = {};
+    // Bestimme den Zeitraum der Daten
+    const dates = patternData.map(pattern => new Date(pattern.Zeitpunkt));
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
     
-    // Definiere Zeitintervalle für einen Tag (stündlich)
-    const hours = [];
-    for (let i = 0; i < 24; i++) {
-      hours.push(`${i}:00`);
-    }
+    // Berechne die Anzahl der Tage im Zeitraum
+    const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
     
-    // Initialisiere leere Datenpunkte für jede Stunde
-    hours.forEach(hour => {
-      groupedData[hour] = { timestamp: hour };
-    });
+    // Automatische Auswahl des Anzeigemodus basierend auf dem Zeitraum
+    const viewMode = daysDiff > 2 ? 'day' : 'hour';
     
-    // Fülle die Daten aus den Mustern
-    patternData.forEach(pattern => {
-      const date = new Date(pattern.Zeitpunkt);
-      const hour = `${date.getHours()}:00`;
-      const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
+    if (viewMode === 'hour') {
+      // Stündliche Gruppierung
+      const groupedData = {};
       
-      if (!groupedData[hour][patternType]) {
-        groupedData[hour][patternType] = 0;
+      // Definiere Zeitintervalle für einen Tag (stündlich)
+      const hours = [];
+      for (let i = 0; i < 24; i++) {
+        hours.push(`${i}:00`);
       }
       
-      groupedData[hour][patternType] += 1;
-    });
-    
-    // Konvertiere in Array und sortiere nach Zeitstempel
-    return Object.entries(groupedData)
-      .map(([hour, data]) => ({
-        ...data,
-        hour: parseInt(hour.split(':')[0])
-      }))
-      .sort((a, b) => a.hour - b.hour);
+      // Initialisiere leere Datenpunkte für jede Stunde
+      hours.forEach(hour => {
+        groupedData[hour] = { 
+          timestamp: hour,
+          display: hour,
+          viewMode: 'hour'
+        };
+      });
+      
+      // Fülle die Daten aus den Mustern
+      patternData.forEach(pattern => {
+        const date = new Date(pattern.Zeitpunkt);
+        const hour = `${date.getHours()}:00`;
+        const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
+        
+        if (!groupedData[hour][patternType]) {
+          groupedData[hour][patternType] = 0;
+        }
+        
+        groupedData[hour][patternType] += 1;
+      });
+      
+      // Konvertiere in Array und sortiere nach Zeitstempel
+      return Object.entries(groupedData)
+        .map(([hour, data]) => ({
+          ...data,
+          hour: parseInt(hour.split(':')[0])
+        }))
+        .sort((a, b) => a.hour - b.hour);
+    } else {
+      // Tägliche Gruppierung
+      const groupedData = {};
+      
+      // Initialisiere für jeden Tag im Zeitraum
+      for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        const dateKey = d.toISOString().split('T')[0];
+        const displayDate = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+        
+        groupedData[dateKey] = {
+          timestamp: d.toISOString(),
+          date: new Date(d),
+          day: d.getDate(),
+          month: d.getMonth(),
+          display: displayDate,
+          viewMode: 'day'
+        };
+      }
+      
+      // Fülle die Daten aus den Mustern
+      patternData.forEach(pattern => {
+        const date = new Date(pattern.Zeitpunkt);
+        const dateKey = date.toISOString().split('T')[0];
+        const patternType = normalizeErrorType(pattern.Muster || 'Unbekannt');
+        
+        if (!groupedData[dateKey]) return; // Überspringe, falls außerhalb des Zeitraums
+        
+        if (!groupedData[dateKey][patternType]) {
+          groupedData[dateKey][patternType] = 0;
+        }
+        
+        groupedData[dateKey][patternType] += 1;
+      });
+      
+      // Konvertiere in Array und sortiere nach Datum
+      return Object.values(groupedData)
+        .sort((a, b) => a.date - b.date);
+    }
   }, [patternData]);
 
   // Extrahiere alle eindeutigen Mustertypen für die Linien
@@ -156,14 +210,33 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" className="dark:stroke-gray-600" />
                 <XAxis 
-                  dataKey="hour" 
-                  tick={{ fill: '#666', className: 'dark:fill-gray-300' }}
-                  tickFormatter={(hour) => `${hour}:00`}
-                  label={{ value: 'Zeitraum: 1 Tag', position: 'insideBottom', offset: -10, fill: '#666', className: 'dark:fill-gray-300' }}
+                  dataKey="display"
+                  tick={{ fill: '#9CA3AF' }}
+                  label={{ 
+                    value: `Zeitraum: ${chartData.length > 0 && chartData[0].viewMode === 'day' ? 
+                      `${chartData.length} ${chartData.length === 1 ? 'Tag' : 'Tage'}` : 
+                      '1 Tag'}`, 
+                    position: 'insideBottom', 
+                    offset: -5, 
+                    fill: '#9CA3AF' 
+                  }}
+                  angle={chartData.length > 0 && chartData[0].viewMode === 'day' && chartData.length > 7 ? -45 : 0}
+                  height={chartData.length > 0 && chartData[0].viewMode === 'day' && chartData.length > 7 ? 60 : 40}
+                  textAnchor={chartData.length > 0 && chartData[0].viewMode === 'day' && chartData.length > 7 ? 'end' : 'middle'}
                 />
                 <YAxis 
                   tick={{ fill: '#666', className: 'dark:fill-gray-300' }}
-                  label={{ value: 'Anzahl der Fehler', angle: -90, position: 'insideLeft', fill: '#666', className: 'dark:fill-gray-300' }}
+                  label={{ 
+                    value: 'Anzahl der Fehler', 
+                    angle: -90, 
+                    position: 'center',
+                    offset: 0,
+                    fill: '#666', 
+                    className: 'dark:fill-gray-300',
+                    style: {
+                      textAnchor: 'middle'
+                    }
+                  }}
                 />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'var(--tooltip-bg, #fff)', border: '1px solid var(--tooltip-border, #e0e0e0)', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--tooltip-text, #333)' }}

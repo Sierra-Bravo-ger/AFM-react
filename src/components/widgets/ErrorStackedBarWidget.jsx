@@ -273,9 +273,13 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
                   label={{ 
                     value: 'Anzahl der Fehler', 
                     angle: -90, 
-                    position: 'insideLeft', 
+                    position: 'center',
+                    offset: 0,
                     fill: '#666', 
-                    className: 'dark:fill-gray-300' 
+                    className: 'dark:fill-gray-300',
+                    style: {
+                      textAnchor: 'middle'
+                    }
                   }}
                 />
                 <Tooltip content={<CustomTooltip />} />

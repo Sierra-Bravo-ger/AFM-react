@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DashboardLayout from './components/layout/DashboardLayout';
 import FilterBar from './components/layout/FilterBar';
+import FloatingTimelinePanel from './components/layout/FloatingTimelinePanel';
+import LazyWidget from './components/layout/LazyWidget';
+import DraggableWidgetGrid from './components/layout/DraggableWidgetGrid';
 import StatusWidget from './components/widgets/StatusWidget';
 import ErrorWidget from './components/widgets/ErrorWidget';
 import FileCountWidget from './components/widgets/FileCountWidget';
@@ -13,6 +16,9 @@ import SystemHealthWidget from './components/widgets/SystemHealthWidget';
 import ThroughputWidget from './components/widgets/ThroughputWidget';
 import ErrorTimeAnalysisWidget from './components/widgets/ErrorTimeAnalysisWidget';
 import ErrorHeatmapWidget from './components/widgets/ErrorHeatmapWidget';
+import ErrorRateLineWidget from './components/widgets/ErrorRateLineWidget';
+import ThroughputLineWidget from './components/widgets/ThroughputLineWidget';
+import ErrorTreemapWidget from './components/widgets/ErrorTreemapWidget';
 
 import { loadCSVData } from './utils/DataLoader';
 import { 
@@ -20,7 +26,7 @@ import {
   groupErrorsByType, 
   countFilesByTimestamp, 
   analyzePatternMatches 
-} from './utils/DataProcessor';
+} from './utils/DataProcessor.jsx';
 
 // Erweiterte Metriken importieren
 import {
@@ -49,9 +55,9 @@ function App() {
   const [filteredPatternData, setFilteredPatternData] = useState([]);
   
   // State für verarbeitete Daten
-  const [statusStats, setStatusStats] = useState(null);
-  const [errorGroups, setErrorGroups] = useState(null);
-  const [fileCountData, setFileCountData] = useState(null);
+  const [statusStats, setStatusStats] = useState({});
+  const [errorGroups, setErrorGroups] = useState([]);
+  const [fileCountData, setFileCountData] = useState([]);
   const [patternAnalysis, setPatternAnalysis] = useState(null);
   
   // State für erweiterte Metriken
@@ -211,76 +217,101 @@ function App() {
     setSelectedErrorType(errorType);
   }, []);
   
+  // Handler für Layout-Änderungen
+  const handleLayoutChange = (currentLayout, allLayouts) => {
+    console.log('Layout geändert:', allLayouts);
+  };
+  
   return (
     <DashboardLayout>
-      {/* Zeitraum-Filter */}
+      {/* Schwebendes Zeitraum-Filter-Panel */}
+      <FloatingTimelinePanel 
+        dateRange={dateRange}
+        onDateRangeChange={handleFilterChange}
+        minDate={minMaxDates.minDate}
+        maxDate={minMaxDates.maxDate}
+      />
+      
+      {/* Zeitraum-Filter - als Überschrift/Info */}
       <div className="col-span-full mb-6">
-        <FilterBar 
-          onFilterChange={handleFilterChange} 
-          minDate={minMaxDates.minDate} 
-          maxDate={minMaxDates.maxDate}
-          currentDateRange={dateRange}
-        />
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Dashboard-Übersicht</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Zeitraum: {dateRange.startDate ? dateRange.startDate.toLocaleDateString() : 'Alle'} bis {dateRange.endDate ? dateRange.endDate.toLocaleDateString() : 'Alle'}
+          </p>
+        </div>
       </div>
       
-      {/* System-Gesundheit und Status */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Anpassbares Widget-Grid mit Drag & Drop */}
+      <DraggableWidgetGrid onLayoutChange={handleLayoutChange}>
         {/* System-Gesundheit-Widget */}
-        <div>
+        <LazyWidget key="system-health" title="System-Gesundheit" placeholderHeight="250px">
           <SystemHealthWidget systemHealth={systemHealth} loading={loading} />
-        </div>
+        </LazyWidget>
         
         {/* Status-Widget */}
-        <div>
+        <LazyWidget key="status" title="System-Status" placeholderHeight="250px">
           <StatusWidget statusStats={statusStats} loading={loading} />
-        </div>
-      </div>
-      
-      {/* Durchsatz und Fehleranalyse */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        </LazyWidget>
+        
         {/* Durchsatz-Widget */}
-        <div>
+        <LazyWidget key="throughput" title="Durchsatz" placeholderHeight="250px">
           <ThroughputWidget throughput={throughput} statusData={filteredStatusData} loading={loading} />
-        </div>
+        </LazyWidget>
         
         {/* Fehler-Zeit-Analyse-Widget */}
-        <div>
+        <LazyWidget key="error-time" title="Fehler-Zeit-Analyse" placeholderHeight="250px">
           <ErrorTimeAnalysisWidget errorsByHour={errorsByHour} errorsByDay={errorsByDay} loading={loading} />
-        </div>
-      </div>
-      
-      {/* Fehler-Heatmap */}
-      <div className="mb-6">
-        <ErrorHeatmapWidget 
-          errorHeatmapData={errorHeatmap} 
-          onFilterChange={handleErrorTypeChange} 
-        />
-      </div>
-      
-      {/* Datei-Zählungs-Widget */}
-      <div className="mb-6">
-        <FileCountWidget fileData={fileCountData} loading={loading} />
-      </div>
-      
-      {/* Muster-Widget */}
-      <div className="mb-6">
-        <PatternMatchWidget patternData={patternAnalysis} loading={loading} />
-      </div>
-      
-      {/* ErrorStackedLine-Widget */}
-      <div className="mb-6">
-        <ErrorStackedLineWidget patternData={filteredPatternData} loading={loading} dateRange={dateRange} />
-      </div>
-      
-      {/* ErrorStackedBar-Widget */}
-      <div className="mb-6">
-        <ErrorStackedBarWidget patternData={filteredPatternData} loading={loading} />
-      </div>
-      
-      {/* Fehler-Widget */}
-      <div className="mb-6">
-        <ErrorWidget errorGroups={errorGroups} loading={loading} />
-      </div>
+        </LazyWidget>
+        
+        {/* Fehler-Heatmap */}
+        <LazyWidget key="error-heatmap" title="Fehler-Heatmap" placeholderHeight="400px">
+          <ErrorHeatmapWidget 
+            errorHeatmapData={errorHeatmap} 
+            onFilterChange={handleErrorTypeChange} 
+          />
+        </LazyWidget>
+        
+        {/* Datei-Zählungs-Widget */}
+        <LazyWidget key="file-count" title="Datei-Zählung" placeholderHeight="250px">
+          <FileCountWidget fileData={fileCountData} loading={loading} />
+        </LazyWidget>
+        
+        {/* Muster-Widget */}
+        <LazyWidget key="pattern-match" title="Muster-Analyse" placeholderHeight="250px">
+          <PatternMatchWidget patternData={patternAnalysis} loading={loading} />
+        </LazyWidget>
+        
+        {/* ErrorStackedLine-Widget */}
+        <LazyWidget key="error-stacked-line" title="Fehlertypen-Verlauf" placeholderHeight="400px">
+          <ErrorStackedLineWidget patternData={filteredPatternData} loading={loading} dateRange={dateRange} />
+        </LazyWidget>
+        
+        {/* ErrorStackedBar-Widget */}
+        <LazyWidget key="error-stacked-bar" title="Fehlertypen-Verteilung" placeholderHeight="400px">
+          <ErrorStackedBarWidget patternData={filteredPatternData} loading={loading} />
+        </LazyWidget>
+        
+        {/* Fehler-Widget */}
+        <LazyWidget key="error-groups" title="Fehler-Analyse" placeholderHeight="250px">
+          <ErrorWidget errorGroups={errorGroups} loading={loading} />
+        </LazyWidget>
+        
+        {/* Fehlertypen-Treemap */}
+        <LazyWidget key="error-treemap" title="Fehlertypen-Treemap" placeholderHeight="400px">
+          <ErrorTreemapWidget patternData={filteredPatternData} loading={loading} />
+        </LazyWidget>
+        
+        {/* Fehlerrate-Liniendiagramm */}
+        <LazyWidget key="error-rate" title="Fehlerrate-Analyse" placeholderHeight="400px">
+          <ErrorRateLineWidget systemHealth={systemHealth} statusData={filteredStatusData} loading={loading} />
+        </LazyWidget>
+        
+        {/* Durchsatz-Liniendiagramm */}
+        <LazyWidget key="throughput-line" title="Durchsatz-Analyse" placeholderHeight="400px">
+          <ThroughputLineWidget statusData={filteredStatusData} loading={loading} />
+        </LazyWidget>
+      </DraggableWidgetGrid>
       
       {/* Zeitraum-Anzeige wurde in die FilterBar verschoben */}
     </DashboardLayout>

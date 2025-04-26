@@ -1,0 +1,45 @@
+/* Anpassungen für die Resize-Handles */
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+  box-sizing: border-box;
+  cursor: se-resize;
+  padding: 0 3px 3px 0;
+}
+
+/* Verbesserte Sichtbarkeit im Dark Mode */
+.react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+/* Hover-Effekt für bessere Sichtbarkeit */
+.react-resizable-handle:hover::after {
+  border-right: 2px solid rgba(255, 255, 255, 0.9);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.9);
+  width: 10px;
+  height: 10px;
+}
+
+/* Spezifischer Stil für den Dark Mode */
+.dark .react-resizable-handle::after {
+  border-right: 2px solid rgba(255, 255, 255, 0.6);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.dark .react-resizable-handle:hover::after {
+  border-right: 2px solid rgba(255, 255, 255, 1);
+  border-bottom: 2px solid rgba(255, 255, 255, 1);
+}

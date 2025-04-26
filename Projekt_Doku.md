@@ -95,12 +95,15 @@ Eine wiederverwendbare Komponente, die als Basis für alle Dashboard-Widgets die
 - Header mit Titel, Icon und Action-Buttons
 - Vollständiger Dark Mode Support
 
-### 2. FilterBar
+### 2. FloatingTimelinePanel
 
-Ermöglicht die Filterung aller Dashboard-Daten nach Zeitraum:
+Ermöglicht die Filterung aller Dashboard-Daten nach Zeitraum in einem schwebenden, frei positionierbaren Panel:
 
-- Schnellfilter-Buttons (5m, 15m, 1h, 4h, 8h, 12h, 1d, 7d, 30d)
+- Schnellfilter-Buttons (5m, 15m, 1h, 4h, 8h, 12h, 16h, 1d, 7d, 14d, 30d)
 - Datums- und Uhrzeitfelder für präzise Filterung
+- Integrierter TimelineSlider für visuelle Zeitraumauswahl
+- Minimierbar und frei auf dem Dashboard positionierbar
+- Anzeige der aktuellen Zeitspanne als menschenlesbarer Text
 - Synchronisierte Aktualisierung aller Widgets
 
 ### 3. StatusWidget
@@ -125,14 +128,17 @@ Analysiert und gruppiert Fehler nach Typ:
 Zeigt den zeitlichen Verlauf von Fehlern als gestapeltes Flächendiagramm:
 
 - Fehlerentwicklung über Zeit
-- Gruppierung nach Fehlertypen
+- Gruppierung nach Fehlertypen (stündlich oder täglich)
+- Dynamische X-Achsen-Anpassung je nach Zeitraum
 - Interaktive Legende zum Ein-/Ausblenden von Fehlertypen
 
-### 6. FileCountWidget
+### 6. ThroughputLineWidget
 
-Visualisiert die Anzahl der verarbeiteten Dateien über Zeit:
+Visualisiert den Durchsatz (verarbeitete Dateien pro Stunde) über Zeit:
 
 - Liniendiagramm mit Trendanzeige
+- Dynamische X-Achsen-Anpassung (stündlich/täglich)
+- Automatische Gruppierung je nach ausgewähltem Zeitraum
 - Filterung nach Zeitraum
 
 ### 7. PatternMatchWidget
@@ -169,8 +175,11 @@ Verarbeitet die geladenen Daten für die verschiedenen Widgets:
 3. **Dark Mode**: Vollständige Unterstützung für helles und dunkles Design
 4. **Modulare Struktur**: Wiederverwendbare Komponenten und klare Trennung von Datenverarbeitung und Darstellung
 5. **Einheitliches Design**: Konsistente Farben, Abstände und Animationen
-6. **Interaktive Zeitfilterung**: Intuitive Zeitraumauswahl mit draggable Timeline-Slider
+6. **Interaktive Zeitfilterung**: Intuitive Zeitraumauswahl mit schwebendem, frei positionierbarem Panel
 7. **Konsistente Diagramm-Darstellung**: Einheitliche Hintergründe und Styling für alle Visualisierungen
+8. **Dynamische Diagramm-Anpassung**: Automatische Anpassung der X-Achsen und Gruppierung je nach Zeitraum
+9. **Lazy Loading**: Widgets werden erst geladen, wenn sie im sichtbaren Bereich sind, für verbesserte Performance
+10. **Anpassbares Dashboard**: Widgets können per Drag & Drop frei angeordnet werden
 
 ## Entwicklung & Erweiterung
 
@@ -194,7 +203,47 @@ Verarbeitet die geladenen Daten für die verschiedenen Widgets:
 - Symbolische Links müssen manuell eingerichtet werden
 - Keine Serverkomponente für Echtzeit-Push-Benachrichtigungen
 
-## Neue Funktionen
+## Performance-Optimierungen
+
+### Lazy Loading für Widgets
+
+Das Dashboard verwendet Lazy Loading für alle Widgets, um die Ladezeit und Performance zu verbessern:
+
+- **LazyWidget-Komponente**:
+  - Nutzt die Intersection Observer API, um zu erkennen, wann Widgets im sichtbaren Bereich sind
+  - Rendert Platzhalter mit Lade-Animation, bis das Widget sichtbar wird
+  - Reduziert die initiale Ladezeit und CPU-/Speicherauslastung
+
+- **Implementierung**:
+  - Basiert auf der react-intersection-observer-Bibliothek
+  - Konfigurierbare Parameter wie threshold, rootMargin und placeholderHeight
+  - Automatisches Laden mit kleiner Verzögerung für bessere UX
+
+- **Vorteile**:
+  - Schnelleres initiales Rendering der Seite
+  - Reduzierte Ressourcennutzung, besonders bei vielen komplexen Diagrammen
+  - Verbesserte Benutzererfahrung durch progressives Laden
+
+### Anpassbares Dashboard mit Drag & Drop
+
+Das Dashboard bietet eine vollständig anpassbare Benutzeroberfläche mit Drag & Drop-Funktionalität:
+
+- **DraggableWidgetGrid-Komponente**:
+  - Basiert auf react-grid-layout für responsive, anpassbare Layouts
+  - Widgets können frei positioniert und in der Größe verändert werden
+  - Automatische Anpassung an verschiedene Bildschirmgrößen (Desktop, Tablet, Smartphone)
+
+- **Persistenz**:
+  - Layout-Konfigurationen werden im LocalStorage gespeichert
+  - Benutzerdefinierte Anordnungen bleiben auch nach dem Neuladen erhalten
+  - Standardlayouts für Erstbenutzer oder bei fehlender gespeicherter Konfiguration
+
+- **Benutzerfreundlichkeit**:
+  - Intuitive Drag-Handles für einfaches Verschieben
+  - Visuelles Feedback während des Ziehens
+  - Kompakte Anordnung ohne Überlappungen
+
+## Neue Funktionen & Verbesserungen
 
 ### SystemHealthWidget
 
@@ -210,9 +259,9 @@ Das SystemHealthWidget bietet eine intuitive und farbkodierte Visualisierung der
   - Farbkodierte Statusanzeige (grün, gelb, rot) mit dynamischen Schwellenwerten
   - Datei-Eingang-Indikator mit drei Zuständen: Aktiv (grün), Dateistau (rot), Inaktiv (gelb)
 
-### TimelineSlider
+### TimelineSlider & FloatingTimelinePanel
 
-Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl mit folgenden Funktionen:
+Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl, die in das FloatingTimelinePanel integriert wurde:
 
 - **Präzise Zeitraumauswahl**:
   - Schlankere Handles (16px statt 24px) für präzisere Positionierung
@@ -227,6 +276,15 @@ Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl
 - **Verbesserte Benutzerfreundlichkeit**:
   - Konsistentes Cursor-Verhalten beim Ziehen durch CSS-Klassen statt DOM-Manipulation
   - Optimierte Touch-Unterstützung für mobile Geräte
+  - Keine Cursor-Sprünge mehr beim Ziehen über Beschriftungen
+
+- **FloatingTimelinePanel-Features**:
+  - Frei positionierbares Panel mit Drag & Drop-Funktionalität
+  - Minimierbar mit Anzeige der aktuellen Zeitspanne im minimierten Zustand
+  - Erweiterte Schnellfilter-Buttons (5m, 15m, 1h, 4h, 8h, 16h, 1d, 7d, 14d, 30d)
+  - Kompaktes 2x2 Grid für Datum/Zeit-Eingabefelder mit einheitlicher Breite
+  - Menschenlesbare Anzeige der aktuellen Zeitspanne (z.B. "8 Tage 9 Std. 3 Min.")
+  - Immer im Vordergrund für schnellen Zugriff auf die Zeitfilterung
 
 - **Draggable Handles**: Start- und Endzeit können durch Ziehen der Handles angepasst werden
 - **Bereichsauswahl**: Der ausgewählte Bereich zwischen den Handles kann als Ganzes verschoben werden
@@ -236,7 +294,7 @@ Der TimelineSlider ist eine interaktive Komponente zur visuellen Zeitraumauswahl
 - **Touch-Unterstützung**: Optimiert für mobile Geräte mit zuverlässiger Touch-Bedienung
 - **Adaptive Markerdichte**: Automatische Anpassung der Zeitmarker-Anzahl je nach Bildschirmbreite
 
-### Zeitraum-Navigation
+### Zeitraum-Navigation & Dynamische Diagramme
 
 Die Zeitraum-Navigation ermöglicht eine effiziente Analyse aufeinanderfolgender Zeitabschnitte:
 
@@ -244,6 +302,14 @@ Die Zeitraum-Navigation ermöglicht eine effiziente Analyse aufeinanderfolgender
 - **Intelligente Zeitspannen-Berechnung**: Verschiebung um exakt die aktuelle Zeitspanne (z.B. 8 Stunden)
 - **Grenzen-Respektierung**: Automatische Anpassung an min/max-Datumsgrenzen
 - **Konsistente Zeitspannen**: Beibehaltung der exakten Zeitspanne bei Verschiebung
+
+**Dynamische X-Achsen für Diagramme**:
+
+- **Intelligente Zeitraumanpassung**: Automatische Erkennung des Zeitraums und Anpassung der X-Achse
+- **Adaptive Gruppierung**: Stündliche Gruppierung für kurze Zeiträume (≤ 2 Tage), tägliche Gruppierung für längere Zeiträume
+- **Optimierte Beschriftung**: Automatische Anpassung der X-Achsenbeschriftung je nach Zeitraum
+- **Rotierte Labels**: Schräge Beschriftungen bei vielen Datenpunkten für bessere Lesbarkeit
+- **Konsistente Implementierung**: Gleiche Logik in allen Diagrammen (ErrorRate, Throughput, ErrorStackedLine)
 
 ### UI-Verbesserungen
 
@@ -254,6 +320,49 @@ Die Zeitraum-Navigation ermöglicht eine effiziente Analyse aufeinanderfolgender
 - **Moderne Benutzeroberfläche**: Klare visuelle Hierarchie und intuitive Bedienelemente
 - **Optimierter Header**: Anpassungsfähiges Layout für Status-Badges und Zeitangaben
 - **Korrigiertes Root-Element-Styling**: Entfernung des unerwünschten Paddings aus der Vite-Standardvorlage
+- **Schwebendes Zeitraum-Panel**: Immer zugängliche Zeitfilterung ohne Platzverlust im Dashboard
+- **Optimiertes Dashboard-Grid**: Anpassbares 12-Spalten-Layout mit Drag & Drop-Funktionalität
+
+### Optimiertes Dashboard-Grid mit 12-Spalten-System
+
+Das Dashboard wurde mit einem flexiblen 12-Spalten-Grid implementiert, das eine optimale Verteilung der Widgets ermöglicht:
+
+#### Technische Implementierung
+
+- **React-Grid-Layout**: Verwendung der Bibliothek für Drag & Drop und responsive Layouts
+- **12-Spalten-System**: Optimale Breite für Desktop (lg), 2 Spalten für Tablet (md), 1 Spalte für Mobilgeräte (sm/xs)
+- **Optimierte Zeilenbasierte Höhe**: Zeileneinheit von 15px für noch feinere Kontrolle über Widget-Größen
+- **Verbesserte Abstands-Konfiguration**: Optimierte Container-Paddings (15px) und Margins (15px) für effizientere Raumnutzung
+- **LocalStorage-Persistenz**: Speicherung der benutzerdefinierten Anordnung und des Collapse-Status
+- **Konsistente Widget-IDs**: Verwendung von Präfix-IDs ('.$widget-name') für zuverlässige Speicherung
+
+#### Layout-Optimierungen
+
+- **Optimierte Widget-Größen**: Große Diagramme nutzen volle Breite (12 Spalten), kleinere Widgets optimal verteilt
+- **Präzise Höhenkontrolle**: Widgets mit fein abgestuften Höhen je nach Inhalt (z.B. h: 38 für komplexe Diagramme)
+- **Automatische Kompaktierung**: Keine Überlappungen und optimale Raumnutzung
+- **Responsive Anpassung**: Automatische Neuanordnung bei verschiedenen Bildschirmgrößen mit konsistenten Höhen
+
+#### Erweiterte Funktionalität
+
+- **Zusammenklappbare Widgets**: Widgets können ein- und ausgeklappt werden
+- **Effiziente Höhenanpassung**: Eingeklappte Widgets haben eine Höhe von exakt 2 Einheiten (30px)
+- **Persistenter Collapse-Status**: Der Zustand (ein-/ausgeklappt) wird im LocalStorage gespeichert
+- **Klare Trennung von Drag & Drop und Collapse**: Dedizierter Drag-Handle-Bereich (75% der Widget-Breite) und separater Bereich für den Collapse-Button
+
+#### Benutzerfreundlichkeit
+
+- **Intuitive Drag & Drop-Steuerung**: Widgets können frei positioniert werden
+- **Verbesserte Resize-Handles**: Optimierte Sichtbarkeit im Dark Mode mit Hover-Effekten
+- **Layout-Reset-Funktion**: Möglichkeit, zur Standardanordnung zurückzukehren
+- **Visuelles Feedback**: Hinweise zur Drag & Drop-Funktionalität im Info-Panel
+- **Robuste Fehlerbehandlung**: Fallback auf Standardlayout bei Problemen
+
+#### Optimiertes Lazy Loading
+
+- **Robuster Lazy-Loading-Mechanismus**: Garantierte Anzeige aller Widgets durch Fallback-Timer
+- **Verbesserte Intersection Observer-Konfiguration**: Optimierte Erkennung in Grid-Layouts
+- **Debugging-Informationen**: Erweiterte Datenattribute und Fehleranzeigen für einfachere Diagnose
 
 ### CSS-Anpassungen
 
