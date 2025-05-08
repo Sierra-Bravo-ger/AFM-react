@@ -30,8 +30,8 @@ const DashboardLayout = ({ children }) => {
         </div>
       </div>
       
-      {/* Main Content */}
-      <div className="container mx-auto px-4 pb-6">
+      {/* Main Content - Maximale Viewport-Nutzung */}
+      <div className="container mx-auto px-2 pb-4 w-full max-w-full">
         {children}
       </div>
       

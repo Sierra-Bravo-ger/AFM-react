@@ -268,14 +268,17 @@ function App() {
         <LazyWidget key="error-heatmap" title="Fehler-Heatmap" placeholderHeight="400px">
           <ErrorHeatmapWidget 
             errorHeatmapData={errorHeatmap} 
-            onFilterChange={handleErrorTypeChange} 
+            onFilterChange={handleErrorTypeChange}
+            loading={loading}
           />
         </LazyWidget>
         
-        {/* Datei-Zählungs-Widget */}
+        {/* Datei-Zählungs-Widget - deaktiviert wegen Performance-Problemen */}
+        {/* 
         <LazyWidget key="file-count" title="Datei-Zählung" placeholderHeight="250px">
           <FileCountWidget fileData={fileCountData} loading={loading} />
         </LazyWidget>
+        */}
         
         {/* Muster-Widget */}
         <LazyWidget key="pattern-match" title="Muster-Analyse" placeholderHeight="250px">

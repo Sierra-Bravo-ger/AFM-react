@@ -15,6 +15,8 @@ import PropTypes from 'prop-types';
  * @param {React.ReactNode} props.headerContent - Zusätzlicher Inhalt im Header (z.B. Legende)
  * @param {Function} props.onCollapse - Callback-Funktion, die aufgerufen wird, wenn das Widget ein- oder ausgeklappt wird
  * @param {boolean} props.headerVisible - Ob der Header angezeigt werden soll (default: true)
+ * @param {boolean} props.forceRenderHeader - Ob der Header immer gerendert werden soll, unabhängig von headerVisible
+ * @param {boolean} props.forceHideContent - Ob der Inhalt ausgeblendet werden soll, unabhängig vom expanded-Status
  */
 const WidgetCard = ({ 
   title, 
@@ -26,7 +28,9 @@ const WidgetCard = ({
   headerAction,
   headerContent,
   onCollapse,
-  headerVisible = true
+  headerVisible = true,
+  forceRenderHeader = false,
+  forceHideContent = false
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -57,8 +61,8 @@ const WidgetCard = ({
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors duration-200 ${className}`}>
-      {/* Header mit Titel und Toggle-Button - nur anzeigen wenn headerVisible true ist */}
-      {headerVisible && (
+      {/* Header mit Titel und Toggle-Button - anzeigen wenn headerVisible true ist oder forceRenderHeader true ist */}
+      {(headerVisible || forceRenderHeader) && (
         <>
           <div className="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200 flex items-center">
@@ -98,15 +102,17 @@ const WidgetCard = ({
         </>
       )}
       
-      {/* Inhalt - nur anzeigen wenn expanded true ist oder nicht collapsible */}
-      <div 
-        className={`
-          transition-all duration-300 overflow-hidden
-          ${collapsible ? (expanded ? 'max-h-[2000px]' : 'max-h-0') : ''}
-        `}
-      >
-        {children}
-      </div>
+      {/* Inhalt - nur anzeigen wenn expanded true ist oder nicht collapsible, und forceHideContent false ist */}
+      {!forceHideContent && (
+        <div 
+          className={`
+            transition-all duration-300 overflow-hidden
+            ${collapsible ? (expanded ? 'max-h-[2000px]' : 'max-h-0') : ''}
+          `}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };

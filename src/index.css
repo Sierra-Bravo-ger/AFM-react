@@ -37,9 +37,24 @@ body {
   color: #f9fafb; /* gray-50 */
 }
 
-/* Smooth transitions beim Theme-Wechsel */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* Optimierte Transitions beim Theme-Wechsel */
+:root {
+  /* Zentrale Theme-Transition-Variable */
+  --theme-transition: 0.15s ease-out;
+}
+
+/* Selektive Transitions nur für relevante Eigenschaften und Elemente */
+.theme-transition-target {
+  transition: var(--theme-transition);
+}
+
+/* Nur für wichtige Elemente Transitions anwenden, nicht für alles */
+h1, h2, h3, h4, h5, h6, p, span, div, button, a, input, select, textarea,
+.bg-white, .bg-gray-100, .bg-gray-200, .bg-gray-800, .bg-gray-900,
+.text-gray-700, .text-gray-800, .text-gray-200, .text-gray-100 {
+  transition-property: color, background-color, border-color;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+  /* will-change für Hardware-Beschleunigung bei wichtigen Elementen */
+  will-change: color, background-color;
 }

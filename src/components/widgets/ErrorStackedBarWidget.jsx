@@ -1,7 +1,65 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
 import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
+
+/**
+ * Benutzerdefinierter Tooltip für das BarChart
+ */
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    // Berechne die Gesamtsumme für diesen Zeitpunkt
+    const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
+    
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 shadow-md rounded">
+        <p className="font-medium text-gray-800 dark:text-gray-200 mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          entry.value > 0 && (
+            <div key={index} className="flex justify-between items-center mb-1">
+              <div className="flex items-center">
+                <div 
+                  className="w-3 h-3 mr-2" 
+                  style={{ backgroundColor: entry.color }}
+                ></div>
+                <span className="text-gray-700 dark:text-gray-300 text-sm">{entry.name}:</span>
+              </div>
+              <span className="text-gray-800 dark:text-gray-200 font-medium text-sm ml-4">
+                {entry.value} ({Math.round(entry.value / total * 100)}%)
+              </span>
+            </div>
+          )
+        ))}
+        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between text-gray-800 dark:text-gray-200">
+            <span className="font-medium">Gesamt:</span>
+            <span className="font-medium">{total}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+/**
+ * NoDataView Komponente
+ */
+const NoDataView = () => (
+  <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
+    Keine Daten verfügbar
+  </div>
+);
+
+/**
+ * LoadingSkeleton Komponente
+ */
+const LoadingSkeleton = () => (
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse transition-colors duration-200">
+    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+    <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
+  </div>
+);
 
 /**
  * ErrorStackedBarWidget - Zeigt die Verteilung von Fehlertypen über Zeit als gestapelte Balken
@@ -9,13 +67,37 @@ import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COL
  * @param {Array} props.patternData - Die Muster-Daten aus der CSV
  * @param {boolean} props.loading - Ladezustand
  */
-const ErrorStackedBarWidget = ({ patternData, loading }) => {
+const ErrorStackedBarWidget = memo(({ patternData, loading }) => {
   // Zeitansicht: 'day' oder 'hour'
   const [viewMode, setViewMode] = useState('auto');
   // State für ausgeblendete Fehlertypen
   const [hiddenTypes, setHiddenTypes] = useState([]);
   
-  // Wir verwenden jetzt die zentrale Utility-Funktion für die Normalisierung von Fehlertypen
+  // Icon für das Widget - memoiziert für bessere Performance
+  const chartIcon = useMemo(() => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+    </svg>
+  ), []);
+
+  // Handler für View-Mode-Änderungen - memoiziert für bessere Performance
+  const handleSetViewModeAuto = useCallback(() => setViewMode('auto'), []);
+  const handleSetViewModeDay = useCallback(() => setViewMode('day'), []);
+  const handleSetViewModeHour = useCallback(() => setViewMode('hour'), []);
+  
+  // Handler für das Umschalten der Sichtbarkeit von Fehlertypen
+  const toggleTypeVisibility = useCallback((type, isHidden) => {
+    if (isHidden) {
+      setHiddenTypes(hiddenTypes.filter(t => t !== type));
+    } else {
+      setHiddenTypes([...hiddenTypes, type]);
+    }
+  }, [hiddenTypes]);
+
+  // Wir verwenden jetzt die zentrale Farbpalette aus ErrorTypeUtils - memoiziert für bessere Performance
+  const getTypeColor = useCallback((type) => {
+    return getErrorTypeColor(type, 'hex');
+  }, []);
 
   // Verarbeite die Daten für das Diagramm
   const chartData = useMemo(() => {
@@ -115,11 +197,6 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
     return Array.from(types);
   }, [patternData]);
   
-  // Wir verwenden jetzt die zentrale Farbpalette aus ErrorTypeUtils
-  const getTypeColor = (type) => {
-    return getErrorTypeColor(type, 'hex');
-  };
-  
   // Bestimme den automatischen Anzeigemodus basierend auf den Daten
   const autoViewMode = useMemo(() => {
     if (!patternData || patternData.length === 0) return 'day';
@@ -132,62 +209,8 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
     return daysDiff > 2 ? 'day' : 'hour';
   }, [patternData]);
   
-  // Zeige Lade-Skeleton wenn Daten geladen werden
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse transition-colors duration-200">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
-        <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
-      </div>
-    );
-  }
-  
-  // Icon für das Widget
-  const chartIcon = (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-    </svg>
-  );
-  
-  // Benutzerdefinierter Tooltip
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      // Berechne die Gesamtsumme für diesen Zeitpunkt
-      const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
-      
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 shadow-md rounded">
-          <p className="font-medium text-gray-800 dark:text-gray-200 mb-2">{label}</p>
-          {payload.map((entry, index) => (
-            entry.value > 0 && (
-              <div key={index} className="flex justify-between items-center mb-1">
-                <div className="flex items-center">
-                  <div 
-                    className="w-3 h-3 mr-2" 
-                    style={{ backgroundColor: entry.color }}
-                  ></div>
-                  <span className="text-gray-700 dark:text-gray-300 text-sm">{entry.name}:</span>
-                </div>
-                <span className="text-gray-800 dark:text-gray-200 font-medium text-sm ml-4">
-                  {entry.value} ({Math.round(entry.value / total * 100)}%)
-                </span>
-              </div>
-            )
-          ))}
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between text-gray-800 dark:text-gray-200">
-              <span className="font-medium">Gesamt:</span>
-              <span className="font-medium">{total}</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-  
-  // Chart-Inhalt
-  const chartContent = (
+  // Chart-Inhalt - memoiziert für bessere Performance
+  const chartContent = useMemo(() => (
     <div>
       {chartData.length > 0 ? (
         <div className="p-4 bg-white dark:bg-gray-800">
@@ -197,21 +220,21 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
               <button
                 type="button"
                 className={`px-4 py-1 text-xs font-medium ${viewMode === 'auto' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'} rounded-l-md`}
-                onClick={() => setViewMode('auto')}
+                onClick={handleSetViewModeAuto}
               >
                 Auto ({autoViewMode === 'day' ? 'Tag' : 'Stunde'})
               </button>
               <button
                 type="button"
                 className={`px-4 py-1 text-xs font-medium ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}
-                onClick={() => setViewMode('day')}
+                onClick={handleSetViewModeDay}
               >
                 Tag
               </button>
               <button
                 type="button"
                 className={`px-4 py-1 text-xs font-medium ${viewMode === 'hour' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'} rounded-r-md`}
-                onClick={() => setViewMode('hour')}
+                onClick={handleSetViewModeHour}
               >
                 Stunde
               </button>
@@ -227,13 +250,7 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
                   <div 
                     key={type} 
                     className="flex items-center px-2 py-1 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => {
-                      if (isHidden) {
-                        setHiddenTypes(hiddenTypes.filter(t => t !== type));
-                      } else {
-                        setHiddenTypes([...hiddenTypes, type]);
-                      }
-                    }}
+                    onClick={() => toggleTypeVisibility(type, isHidden)}
                   >
                     <div 
                       className={`w-4 h-4 mr-1 rounded ${isHidden ? 'opacity-30' : ''}`} 
@@ -282,7 +299,7 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
                     }
                   }}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={CustomTooltip} />
                 <Legend wrapperStyle={{ display: 'none' }} />
                 
                 {patternTypes
@@ -301,12 +318,25 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
           </div>
         </div>
       ) : (
-        <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
-          Keine Daten verfügbar
-        </div>
+        <NoDataView />
       )}
     </div>
-  );
+  ), [chartData, viewMode, autoViewMode, patternTypes, hiddenTypes, getTypeColor, handleSetViewModeAuto, handleSetViewModeDay, handleSetViewModeHour, toggleTypeVisibility]);
+  
+  // Zeige Lade-Skeleton wenn Daten geladen werden
+  if (loading) {
+    return (
+      <WidgetCard
+        title="Fehlertypen-Verteilung"
+        icon={chartIcon}
+        collapsible={true}
+        defaultExpanded={true}
+        className="col-span-1 lg:col-span-2"
+      >
+        <LoadingSkeleton />
+      </WidgetCard>
+    );
+  }
   
   return (
     <WidgetCard
@@ -319,6 +349,6 @@ const ErrorStackedBarWidget = ({ patternData, loading }) => {
       {chartContent}
     </WidgetCard>
   );
-};
+});
 
 export default ErrorStackedBarWidget;

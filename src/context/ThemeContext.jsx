@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 
 // Theme Context erstellen
 export const ThemeContext = createContext();
@@ -7,6 +7,8 @@ export const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
   // Prüfen, ob ein gespeichertes Theme existiert oder OS-Einstellung verwenden
   const getInitialTheme = () => {
+    if (typeof window === 'undefined') return 'light'; // SSR-Fallback
+    
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       return savedTheme;
@@ -17,24 +19,43 @@ export const ThemeProvider = ({ children }) => {
 
   const [theme, setTheme] = useState(getInitialTheme);
 
-  // Theme wechseln
-  const toggleTheme = () => {
+  // Theme wechseln - mit useCallback für Performance-Optimierung
+  const toggleTheme = useCallback(() => {
     setTheme(prevTheme => {
       const newTheme = prevTheme === 'light' ? 'dark' : 'light';
       localStorage.setItem('theme', newTheme);
       return newTheme;
     });
-  };
+  }, []);
 
-  // Theme-Klasse zum HTML-Element hinzufügen/entfernen
+  // Theme-Klasse zum HTML-Element hinzufügen/entfernen - optimiert
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
+    // Effizientere Klassen-Manipulation: Nur die notwendigen Änderungen vornehmen
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      // Setze ein Attribut für CSS-Selektoren, die :root nicht verwenden können
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+    }
+    
+    // Optimierung: Setze eine CSS-Variable, die für Transitions verwendet werden kann
+    root.style.setProperty('--theme-transition', 'all 0.2s ease');
   }, [theme]);
 
+  // Context-Wert mit useMemo für Performance-Optimierung
+  const contextValue = useMemo(() => {
+    return { theme, toggleTheme };
+  }, [theme, toggleTheme]);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

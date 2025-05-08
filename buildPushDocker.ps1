@@ -108,6 +108,8 @@ if (-not $SkipPush) {
     Write-Host "1. Erstellen Sie auf dem Zielsystem eine docker-compose.yml" -ForegroundColor Cyan
     Write-Host "2. Starten Sie den Container mit: docker-compose up -d" -ForegroundColor Cyan
     Write-Host "3. Zugriff auf das Dashboard: http://[server-ip]:7188/" -ForegroundColor Cyan
+    Write-Host "Optional: Update via Watchtower API:" -ForegroundColor Cyan
+    Write-Host "curl -H "Authorization: Bearer mein_api_token" http://192.168.178.43:6060/v1/update" -ForegroundColor Cyan
 } else {
     Write-Host "Das Pushen zu Docker Hub wurde übersprungen." -ForegroundColor Yellow
     Write-Host ""

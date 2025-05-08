@@ -142,20 +142,24 @@ const DraggableWidgetGrid = ({
     breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480 },
     cols: { lg: 12, md: 2, sm: 1, xs: 1 },
     rowHeight: 15,
-    containerPadding: [15, 15],
-    margin: [15, 15],
+    // Reduzierte Abstände für bessere Viewport-Nutzung
+    containerPadding: [10, 10],
+    margin: [10, 10],
     onLayoutChange: handleLayoutChange,
     isDraggable: isDraggable,
     isResizable: isResizable,
     useCSSTransforms: true,
-    compactType: 'vertical',
     preventCollision: false,
     // Wichtig: Automatisches Verteilen auf Spalten aktivieren
     verticalCompact: true,
-    // Automatisches Füllen von Lücken
+    // Automatisches Füllen von Lücken für kompaktes Layout
     compactType: 'vertical',
     // Spezifisches Element für Drag-Handle, damit Buttons klickbar bleiben
-    draggableHandle: ".drag-handle"
+    draggableHandle: ".drag-handle",
+    // Maximale Nutzung des verfügbaren Platzes
+    autoSize: true,
+    // Volle Breite des Containers nutzen
+    width: '100%'
   };
 
   // State für Feedback-Nachricht
@@ -189,8 +193,8 @@ const DraggableWidgetGrid = ({
         // Nur das betroffene Widget anpassen
         if (itemWidgetId === widgetId) {
           if (isCollapsed) {
-            // Höhe auf genau 2 Einheiten (2 Zeilen) setzen
-            return { ...item, h: 2 };
+            // Höhe auf genau 3 Einheiten (3 Zeilen) setzen
+            return { ...item, h: 3 };
           } else {
             // Originalhöhe aus dem Standardlayout wiederherstellen
             const defaultItem = defaultLayouts[breakpoint]?.find(d => d.i === item.i);
@@ -355,6 +359,7 @@ const DraggableWidgetGrid = ({
               <div 
                 className="widget-wrapper transition-all duration-300 ease-in-out overflow-hidden"
                 style={{ height: isCollapsed ? '40px' : '100%' }}
+                data-collapsed={isCollapsed ? 'true' : 'false'}
               >
                 {/* Debug-Information für leere Widgets */}
                 {!child && (
@@ -362,7 +367,14 @@ const DraggableWidgetGrid = ({
                     Widget {cleanWidgetId} konnte nicht geladen werden.
                   </div>
                 )}
-                {child}
+                
+                {/* Bei eingeklappten Widgets nur den Header rendern, den Inhalt ausblenden */}
+                {React.cloneElement(child, {
+                  // Wir übergeben den Collapse-Status an das Widget
+                  // Das WidgetCard rendert dann nur den Header, wenn eingeklappt
+                  forceRenderHeader: true,
+                  forceHideContent: isCollapsed
+                })}
               </div>
             </div>
           );

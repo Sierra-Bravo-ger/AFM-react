@@ -64,6 +64,19 @@
   "background_color": "#111827",
   "orientation": "portrait",
   "description": "Dashboard zur Überwachung von Dateiverarbeitungsprozessen",
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "screenshot-pwa-desktop.png",
+      "type": "image/png",
+      "sizes": "2560x1440",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshot-pwa-mobile.png",
+      "type": "image/png",
+      "sizes": "430x720",
+      "form_factor": "narrow"
+    }
+  ],
   "categories": ["productivity", "utilities"]
 }

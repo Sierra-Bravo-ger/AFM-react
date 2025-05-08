@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
 import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COLORS } from '../../utils/ErrorTypeUtils';
@@ -9,10 +9,21 @@ import { normalizeErrorType, getErrorTypeColor, extractErrorType, ERROR_TYPE_COL
  * @param {Array} props.patternData - Die Muster-Daten aus der CSV
  * @param {boolean} props.loading - Ladezustand
  */
-const ErrorStackedLineWidget = ({ patternData, loading }) => {
+const ErrorStackedLineWidget = memo(({ patternData, loading }) => {
   const [expanded, setExpanded] = useState(false);
   // State für ausgeblendete Fehlertypen
   const [hiddenTypes, setHiddenTypes] = useState([]);
+  
+  // Toggle-Funktion für Fehlertypen mit useCallback memoizieren
+  const toggleErrorType = useCallback((type) => {
+    setHiddenTypes(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
+      }
+    });
+  }, []);
   
   // Wir verwenden jetzt die zentrale Utility-Funktion für die Normalisierung von Fehlertypen
 
@@ -123,28 +134,31 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
     return Array.from(types);
   }, [patternData]);
   
-  // Farbpalette für die verschiedenen Mustertypen - hellere Farben für weißes Design
+  // Farbpalette für die verschiedenen Mustertypen - memoiziert für bessere Performance
   // Wir verwenden jetzt die zentrale Farbpalette aus ErrorTypeUtils
-  const getTypeColor = (type) => {
+  const getTypeColor = useCallback((type) => {
     return getErrorTypeColor(type, 'hex');
-  };
+  }, []);
   
-  // Zeige Lade-Skeleton wenn Daten geladen werden
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse transition-colors duration-200">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
-        <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
-      </div>
-    );
-  }
-  
-  // Icon für das Widget
-  const chartIcon = (
+  // Icon für das Widget - memoiziert, um unnötige Re-Renderings zu vermeiden
+  const chartIcon = useMemo(() => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
       <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
     </svg>
-  );
+  ), []);
+  
+  // Lade-Skeleton als memoizierte Komponente für bessere Performance
+  const LoadingSkeleton = useMemo(() => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse transition-colors duration-200">
+      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+      <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
+    </div>
+  ), []);
+  
+  // Zeige Lade-Skeleton wenn Daten geladen werden
+  if (loading) {
+    return LoadingSkeleton;
+  }
 
   // Legende als Header-Content
   const legendContent = (
@@ -175,13 +189,7 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
                   <div 
                     key={type} 
                     className="flex items-center px-2 py-1 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => {
-                      if (isHidden) {
-                        setHiddenTypes(hiddenTypes.filter(t => t !== type));
-                      } else {
-                        setHiddenTypes([...hiddenTypes, type]);
-                      }
-                    }}
+                    onClick={() => toggleErrorType(type)}
                   >
                     <div 
                       className={`w-4 h-4 mr-1 rounded ${isHidden ? 'opacity-30' : ''}`} 
@@ -282,6 +290,8 @@ const ErrorStackedLineWidget = ({ patternData, loading }) => {
       {chartContent}
     </WidgetCard>
   );
-};
+});
 
+// Exportiere die memoizierte Komponente mit einem sinnvollen Vergleich der Props
+// Nur neu rendern, wenn sich patternData oder loading ändern
 export default ErrorStackedLineWidget;

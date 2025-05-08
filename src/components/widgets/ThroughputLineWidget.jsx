@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import WidgetCard from '../layout/WidgetCard';
 
@@ -8,9 +8,15 @@ import WidgetCard from '../layout/WidgetCard';
  * @param {Array} props.statusData - Die Status-Daten aus der CSV
  * @param {boolean} props.loading - Ladezustand
  */
-const ThroughputLineWidget = ({ statusData, loading }) => {
+const ThroughputLineWidget = memo(({ statusData, loading }) => {
   const [expanded, setExpanded] = useState(false);
   
+  // Formatiere das Datum für die Anzeige - memoiziert für bessere Performance
+  const formatDate = useCallback((dateStr) => {
+    const date = new Date(dateStr);
+    return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+  }, []);  
+
   // Verarbeite die Daten für das Diagramm
   const chartData = useMemo(() => {
     if (!statusData || statusData.length === 0) return [];
@@ -147,19 +153,46 @@ const ThroughputLineWidget = ({ statusData, loading }) => {
     }
   }, [statusData]);
   
+  // Formatiere das Datum für die X-Achse - memoiziert für bessere Performance
+  const formatXAxis = useCallback((tickItem) => {
+    if (tickItem.viewMode === 'hour') {
+      return tickItem.hour;
+    } else {
+      return formatDate(tickItem.timestamp);
+    }
+  }, [formatDate]);
+
   // Bestimme den maximalen Durchsatz für die Y-Achse
   const maxThroughput = useMemo(() => {
     if (chartData.length === 0) return 100;
     const max = Math.max(...chartData.map(item => item.throughput));
     return Math.ceil(max * 1.1); // 10% Puffer
   }, [chartData]);
-  
-  // Chart-Icon
-  const chartIcon = (
+
+  // Chart-Icon - memoiziert, um unnötige Re-Renderings zu vermeiden
+  const chartIcon = useMemo(() => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
       <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
     </svg>
-  );
+  ), []);
+
+  // Tooltip-Formatter für das Diagramm - memoiziert für bessere Performance
+  const tooltipFormatter = useCallback((value, name, props) => {
+    return [`${value} Dateien/Std`, 'Durchsatz'];
+  }, []);
+  
+  // Lade-Skeleton als memoizierte Komponente für bessere Performance
+  const LoadingSkeleton = useMemo(() => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 animate-pulse transition-colors duration-200">
+      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+      <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded"></div>
+    </div>
+  ), []);
+
+  // Zeige Lade-Skeleton wenn Daten geladen werden
+  if (loading) {
+    return LoadingSkeleton;
+  }
 
   // Chart-Inhalt
   const chartContent = (
@@ -177,6 +210,7 @@ const ThroughputLineWidget = ({ statusData, loading }) => {
                 <XAxis 
                   dataKey={chartData.length > 0 && chartData[0].viewMode === 'day' ? 'display' : 'hour'} 
                   tick={{ fill: '#666', className: 'dark:fill-gray-300' }}
+                  tickFormatter={formatXAxis}
                   label={{ 
                     value: `Zeitraum: ${chartData.length > 0 && chartData[0].viewMode === 'day' ? 
                       `${chartData.length} ${chartData.length === 1 ? 'Tag' : 'Tage'}` : 
@@ -208,7 +242,7 @@ const ThroughputLineWidget = ({ statusData, loading }) => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'var(--tooltip-bg, #fff)', border: '1px solid var(--tooltip-border, #e0e0e0)', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--tooltip-text, #333)' }}
                   labelStyle={{ color: 'var(--tooltip-label, #333)' }}
-                  formatter={(value, name) => [`${value} Dateien/h`, 'Durchsatz']}
+                  formatter={tooltipFormatter}
                   labelFormatter={(time) => `Zeitpunkt: ${time}`}
                 />
                 <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -243,6 +277,8 @@ const ThroughputLineWidget = ({ statusData, loading }) => {
       {chartContent}
     </WidgetCard>
   );
-};
+});
 
+// Exportiere die memoizierte Komponente mit einem sinnvollen Vergleich der Props
+// Nur neu rendern, wenn sich statusData oder loading ändern
 export default ThroughputLineWidget;
